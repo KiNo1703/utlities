@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Generator (Multiple DevEUI)</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🔑</text></svg>">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+        }
+        .generate-btn {
+            background-color: #4CAF50;
+        }
+        .generate-btn:hover {
+            background-color: #45a049;
+        }
+        .copy-btn {
+            background-color: #2196F3;
+        }
+        .copy-btn:hover {
+            background-color: #0b7dda;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .instructions {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #fffde7;
+            border-left: 4px solid #ffd600;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SQL Метки</h1>
+        
+        <div class="instructions">
+            <strong>Инструкция:</strong> Введите теги через запятую и DevEUI (по одному на строку), затем нажмите "Generate SQL".
+        </div>
+        
+        <div class="form-group">
+            <label for="tags">Tags (через запятую):</label>
+            <input type="text" id="tags" placeholder="46414172, КТПн-908">
+        </div>
+        
+        <div class="form-group">
+            <label for="deveui">DevEUI (по одному на строку):</label>
+            <textarea id="deveui" placeholder="04:97:90:00:10:F0:D4:F0
+04:97:90:00:10:F0:D4:F1
+04:97:90:00:10:F0:D4:F2"></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="generate-btn" onclick="generateSQL()">Generate SQL</button>
+            <button class="copy-btn" onclick="copyToClipboard()">Копировать</button>
+        </div>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <div class="notification" id="notification">SQL скопировано в буфер обмена!</div>
+
+    <script>
+         function generateSQL() {
+    // Get input values
+    const tagsInput = document.getElementById('tags').value.trim();
+    const deveuiInput = document.getElementById('deveui').value.trim();
+    
+    // Validate inputs
+    if (!tagsInput || !deveuiInput) {
+        showNotification("Пожалуйста, заполните оба поля", "error");
+        return;
+    }
+    
+    // Process tags - split by comma and trim each item
+    const tagsArray = tagsInput.split(',').map(tag => tag.trim());
+    
+    // Format tags as JSON array elements with double quotes
+    const formattedTags = tagsArray.map(tag => `"${tag}"`).join(', ');
+    
+    // Process DevEUI - split by newline and trim each line
+    const deveuiList = deveuiInput.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+    
+    // Generate SQL for each DevEUI (JSON array inside single quotes)
+    const sqlQueries = deveuiList.map(deveui => {
+        return `update device set tags='{${formattedTags}}' where deveui = '${deveui}';`;
+    }).join('\n\n');
+    
+    // Display result
+    document.getElementById('result').textContent = sqlQueries;
+    showNotification("SQL запросы сгенерированы!");
+}
+        
+        function copyToClipboard() {
+            const result = document.getElementById('result');
+            if (result.textContent.trim() === '') {
+                showNotification("Сначала сгенерируйте SQL-запросы", "error");
+                return;
+            }
+            
+            navigator.clipboard.writeText(result.textContent)
+                .then(() => showNotification("SQL скопировано в буфер обмена!"))
+                .catch(err => showNotification("Ошибка при копировании: " + err, "error"));
+        }
+        
+        function showNotification(message, type = "success") {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.backgroundColor = type === "error" ? "#f44336" : "#4CAF50";
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Allow pressing Enter to generate SQL (when focus is not in textarea)
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                generateSQL();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор серийных номеров DevEUI</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🔆</text></svg>">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1000px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        .description {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 600;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            resize: vertical;
+        }
+        textarea:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        button.secondary {
+            background-color: #2ecc71;
+        }
+        button.secondary:hover {
+            background-color: #27ae60;
+        }
+        button.outline {
+            background-color: transparent;
+            border: 2px solid #3498db;
+            color: #3498db;
+        }
+        button.outline:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        .result {
+            margin-top: 25px;
+            overflow-x: auto;
+        }
+        .result-title {
+            color: #34495e;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            min-width: 600px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            user-select: all;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: 600;
+            position: relative;
+        }
+        th:hover {
+            background-color: #2980b9;
+        }
+        th::after {
+            content: "📋";
+            position: absolute;
+            right: 10px;
+            opacity: 0.7;
+        }
+        tr:hover {
+            background-color: #f5f7fa;
+        }
+        td:hover {
+            background-color: #e3e8f0;
+        }
+        .serial-number {
+            font-family: monospace;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .copy-info {
+            margin-top: 10px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        .explanation {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e8f4fc;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #34495e;
+            line-height: 1.5;
+        }
+        .explanation-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #3498db;
+        }
+        .step {
+            margin-bottom: 8px;
+            padding-left: 15px;
+            position: relative;
+        }
+        .step:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff8e1;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+        }
+        .instructions-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #ff9800;
+        }
+        @media (max-width: 768px) {
+            .buttons {
+                flex-direction: column;
+            }
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Генератор серийных номеров DevEUI</h1>
+        <p class="description">Преобразуйте несколько DevEUI светильников в серийные номера для внесения в метеринг</p>
+        
+        <div class="input-group">
+            <label for="deveui-list">Введите DevEUI (по одному на строку):</label>
+            <textarea id="deveui-list" placeholder="Введите каждый DevEUI с новой строки. Пример:
+04:97:90:00:10:3D:8A:63
+A0:B4:39:81:2F:1C:4E:20
+24:e1:24:21:03:00:05:6A">04:97:90:00:10:3D:8A:63
+A0:B4:39:81:2F:1C:4E:20
+24:e1:24:21:03:00:05:6A
+B8:27:EB:EF:12:4A:91:7C
+C4:5B:BE:6A:01:23:45:67</textarea>
+        </div>
+        
+        <div class="buttons">
+            <button id="generate-btn">Сгенерировать серийные номера</button>
+            <button id="copy-all-btn" class="secondary">Копировать всю таблицу</button>
+            <button id="copy-serial-btn" class="outline">Копировать только серийные номера</button>
+            <button id="clear-btn">Очистить все</button>
+        </div>
+        
+        <div class="instructions">
+            <div class="instructions-title">Как копировать данные:</div>
+            <div class="step">Нажмите на заголовок столбца, чтобы скопировать все данные из этого столбца</div>
+            <div class="step">Выделите мышью нужные ячейки и скопируйте (Ctrl+C)</div>
+            <div class="step">Используйте специальные кнопки для копирования всей таблицы или только серийных номеров</div>
+        </div>
+        
+        <div class="result">
+            <div class="result-title">
+                <span>Результаты преобразования:</span>
+                <span id="counter">0 серийных номеров</span>
+            </div>
+            <div id="results-container">
+                <table id="results-table">
+                    <thead>
+                        <tr>
+                            <th data-column="index">№</th>
+                            <th data-column="deveui">DevEUI</th>
+                            <th data-column="serial">Серийный номер</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Результаты будут здесь -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="copy-info" id="copy-info">Готово к генерации серийных номеров</div>
+        </div>
+        
+        <div class="explanation">
+            <div class="explanation-title">Как работает преобразование:</div>
+            <div class="step">Из каждого DevEUI удаляются все двоеточия</div>
+            <div class="step">Из полученной строки берутся последние 6 символов</div>
+            <div class="step">Эти 6 символов (в HEX-формате) преобразуются в десятичное число</div>
+            <div class="step">Полученное число становится серийным номером для учета</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deveuiListInput = document.getElementById('deveui-list');
+            const generateBtn = document.getElementById('generate-btn');
+            const copyAllBtn = document.getElementById('copy-all-btn');
+            const copySerialBtn = document.getElementById('copy-serial-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const resultsTable = document.getElementById('results-table');
+            const copyInfo = document.getElementById('copy-info');
+            const counter = document.getElementById('counter');
+            
+            // Функция для генерации серийного номера из одного DevEUI
+            function generateSerialNumber(deveui) {
+                // Удаляем все двоеточия
+                const cleanedDeveui = deveui.replace(/:/g, '');
+                
+                // Берем последние 6 символов
+                const lastSix = cleanedDeveui.slice(-6);
+                
+                // Проверяем, что у нас есть 6 hex-символов
+                if (!/^[0-9A-Fa-f]{6}$/.test(lastSix)) {
+                    throw new Error(`Некорректный формат DevEUI: ${deveui}. После удаления двоеточий должно быть не менее 6 hex-символов.`);
+                }
+                
+                // Преобразуем hex в decimal
+                const decimal = parseInt(lastSix, 16);
+                
+                return decimal.toString();
+            }
+            
+            // Функция для генерации серийных номеров для всех DevEUI
+            function generateAllSerialNumbers() {
+                const deveuiList = deveuiListInput.value.trim().split('\n');
+                const results = [];
+                const errors = [];
+                
+                // Очищаем таблицу результатов
+                const tbody = resultsTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                // Обрабатываем каждый DevEUI
+                deveuiList.forEach((deveui, index) => {
+                    if (deveui.trim() === '') return; // Пропускаем пустые строки
+                    
+                    try {
+                        const serialNumber = generateSerialNumber(deveui.trim());
+                        results.push({
+                            index: index + 1,
+                            deveui: deveui.trim(),
+                            serialNumber: serialNumber
+                        });
+                        
+                        // Добавляем строку в таблицу
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${deveui.trim()}</td>
+                            <td class="serial-number">${serialNumber}</td>
+                        `;
+                        tbody.appendChild(row);
+                    } catch (error) {
+                        errors.push({
+                            index: index + 1,
+                            deveui: deveui.trim(),
+                            error: error.message
+                        });
+                        
+                        // Добавляем строку с ошибкой в таблицу
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${deveui.trim()}</td>
+                            <td class="error">${error.message}</td>
+                        `;
+                        tbody.appendChild(row);
+                    }
+                });
+                
+                // Обновляем счетчик
+                counter.textContent = `${results.length} серийных номеров, ${errors.length} ошибок`;
+                
+                // Показываем информацию о результате
+                if (errors.length === 0 && results.length > 0) {
+                    copyInfo.textContent = `Успешно сгенерировано ${results.length} серийных номеров.`;
+                    copyInfo.style.color = '#27ae60';
+                } else if (results.length > 0) {
+                    copyInfo.textContent = `Сгенерировано ${results.length} серийных номеров, ${errors.length} с ошибками.`;
+                    copyInfo.style.color = '#e67e22';
+                } else {
+                    copyInfo.textContent = 'Нет данных для отображения. Введите DevEUI и нажмите "Сгенерировать"';
+                    copyInfo.style.color = '#7f8c8d';
+                }
+                
+                return results;
+            }
+            
+            // Функция для копирования содержимого столбца
+            function copyColumn(columnIndex) {
+                const rows = resultsTable.querySelectorAll('tbody tr');
+                if (rows.length === 0) {
+                    copyInfo.textContent = "Нет данных для копирования";
+                    copyInfo.style.color = '#e74c3c';
+                    return;
+                }
+                
+                let columnData = [];
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length > columnIndex) {
+                        columnData.push(cells[columnIndex].textContent);
+                    }
+                });
+                
+                navigator.clipboard.writeText(columnData.join('\n'))
+                    .then(() => {
+                        const columnNames = ['№', 'DevEUI', 'Серийные номера'];
+                        copyInfo.textContent = `Скопировано ${columnData.length} значений из столбца "${columnNames[columnIndex]}"`;
+                        copyInfo.style.color = '#27ae60';
+                        
+                        setTimeout(() => {
+                            if (columnData.length > 0) {
+                                copyInfo.textContent = `Готово: ${rows.length} строк, ${errors.length} ошибок`;
+                            }
+                        }, 3000);
+                    })
+                    .catch(err => {
+                        copyInfo.textContent = "Ошибка при копировании: " + err;
+                        copyInfo.style.color = '#e74c3c';
+                    });
+            }
+            
+            // Функция для копирования всей таблицы
+            function copyWholeTable() {
+                const rows = resultsTable.querySelectorAll('tr');
+                if (rows.length <= 1) {
+                    copyInfo.textContent = "Нет данных для копирования";
+                    copyInfo.style.color = '#e74c3c';
+                    return;
+                }
+                
+                let tableData = [];
+                
+                // Добавляем заголовки
+                const headerCells = rows[0].querySelectorAll('th');
+                let headerRow = [];
+                headerCells.forEach(cell => {
+                    headerRow.push(cell.textContent);
+                });
+                tableData.push(headerRow.join('\t'));
+                
+                // Добавляем данные
+                for (let i = 1; i < rows.length; i++) {
+                    const cells = rows[i].querySelectorAll('td');
+                    let rowData = [];
+                    cells.forEach(cell => {
+                        rowData.push(cell.textContent);
+                    });
+                    tableData.push(rowData.join('\t'));
+                }
+                
+                navigator.clipboard.writeText(tableData.join('\n'))
+                    .then(() => {
+                        copyInfo.textContent = `Вся таблица скопирована (${rows.length-1} строк)!`;
+                        copyInfo.style.color = '#27ae60';
+                    })
+                    .catch(err => {
+                        copyInfo.textContent = "Ошибка при копировании: " + err;
+                        copyInfo.style.color = '#e74c3c';
+                    });
+            }
+            
+            // Функция для копирования только серийных номеров
+            function copyOnlySerials() {
+                const rows = resultsTable.querySelectorAll('tbody tr');
+                if (rows.length === 0) {
+                    copyInfo.textContent = "Нет данных для копирования";
+                    copyInfo.style.color = '#e74c3c';
+                    return;
+                }
+                
+                let serials = [];
+                rows.forEach(row => {
+                    const serialCell = row.querySelector('td.serial-number');
+                    if (serialCell && !serialCell.classList.contains('error')) {
+                        serials.push(serialCell.textContent);
+                    }
+                });
+                
+                if (serials.length === 0) {
+                    copyInfo.textContent = "Нет серийных номеров для копирования";
+                    copyInfo.style.color = '#e74c3c';
+                    return;
+                }
+                
+                navigator.clipboard.writeText(serials.join('\n'))
+                    .then(() => {
+                        copyInfo.textContent = `Скопировано ${serials.length} серийных номеров!`;
+                        copyInfo.style.color = '#27ae60';
+                    })
+                    .catch(err => {
+                        copyInfo.textContent = "Ошибка при копировании: " + err;
+                        copyInfo.style.color = '#e74c3c';
+                    });
+            }
+            
+            // Очистка всего
+            function clearAll() {
+                deveuiListInput.value = '';
+                resultsTable.querySelector('tbody').innerHTML = '';
+                copyInfo.textContent = 'Данные очищены. Введите DevEUI и нажмите "Сгенерировать"';
+                copyInfo.style.color = '#7f8c8d';
+                counter.textContent = '0 серийных номеров';
+            }
+            
+            // Обработчики событий
+            generateBtn.addEventListener('click', generateAllSerialNumbers);
+            copyAllBtn.addEventListener('click', copyWholeTable);
+            copySerialBtn.addEventListener('click', copyOnlySerials);
+            clearBtn.addEventListener('click', clearAll);
+            
+            // Обработчики для копирования по клику на заголовок
+            document.querySelectorAll('th[data-column]').forEach((th, index) => {
+                th.addEventListener('click', () => copyColumn(index));
+            });
+            
+            // Автоматически сгенерировать при загрузке
+            generateAllSerialNumbers();
+        });
+    </script>
+</body>
+</html>

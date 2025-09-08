@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мульти-генератор HEX-команд и Парсер планировщика</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>⚙️</text></svg>">
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-hover: #2980b9;
+            --success: #2ecc71;
+            --success-hover: #27ae60;
+            --secondary: #95a5a6;
+            --secondary-hover: #7f8c8d;
+            --text: #2c3e50;
+            --light-text: #7f8c8d;
+            --bg: #f5f5f5;
+            --card-bg: white;
+            --border: #ecf0f1;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Тёмная тема */
+        .dark-mode {
+            --primary: #1e88e5;
+            --primary-hover: #1565c0;
+            --success: #26a69a;
+            --success-hover: #00897b;
+            --secondary: #546e7a;
+            --secondary-hover: #455a64;
+            --text: #eceff1;
+            --light-text: #b0bec5;
+            --bg: #121212;
+            --card-bg: #1e1e1e;
+            --border: #333;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .section.hidden {
+            display: none;
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        h1, h2, h3 {
+            color: var(--text);
+            margin-top: 0;
+            transition: color 0.3s ease;
+        }
+
+        h2 {
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+            text-align: center;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .parser-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .parser-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .back-btn {
+            background-color: var(--secondary);
+            margin-top: 20px;
+        }
+
+        .back-btn:hover {
+            background-color: var(--secondary-hover);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            font-family: monospace;
+            background-color: var(--card-bg);
+            color: var(--text);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        button.generate {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        button.generate:hover {
+            background-color: var(--success-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            position: relative;
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+        }
+
+        .output.visible {
+            max-height: 500px;
+            opacity: 1;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .output-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--light-text);
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background-color: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .input-row .input-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .mask-settings {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .mask-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mask-option input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .mask-option label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .explanation ul {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        .explanation li {
+            margin-bottom: 5px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(30deg);
+            background-color: var(--primary-hover);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                gap: 15px;
+            }
+            .section {
+                padding: 15px;
+            }
+            .parser-btn {
+                padding: 12px;
+                font-size: 16px;
+            }
+            input, textarea, select {
+                padding: 10px;
+                font-size: 14px;
+            }
+            .input-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fffde7;
+            border-radius: 6px;
+            border-left: 4px solid #ffd600;
+            font-size: 14px;
+        }
+
+        .instructions h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .instructions code {
+            background-color: rgba(0,0,0,0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .dark-mode .instructions {
+            background-color: #333;
+            border-left-color: #ffd600;
+        }
+
+        .dark-mode .instructions h3,
+        .dark-mode .instructions p {
+            color: #fff;
+        }
+
+        .dark-mode .instructions code {
+            background-color: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        /* Scheduler Parser Specific Styles */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: var(--secondary);
+            color: var(--text);
+            cursor: pointer;
+            margin-right: 5px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            background: var(--secondary-hover);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: left;
+            color: var(--text);
+        }
+
+        th {
+            background-color: var(--border);
+            font-weight: 600;
+        }
+
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .success {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .hex-value {
+            font-family: monospace;
+        }
+
+        .object-active {
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+
+        .object-inactive {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+
+        .binary-mask {
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .objects-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .object-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .object-item input {
+            width: auto;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+
+    <div class="container">
+        <!-- Главное меню -->
+        <div id="main-menu" class="section">
+            <h1>Выберите тип генератора</h1>
+            <div class="menu">
+                <button class="parser-btn" onclick="showParser('time')">Генератор HEX-команд времени</button>
+                <button class="parser-btn" onclick="showParser('events')">Генератор команд событий</button>
+                <button class="parser-btn" onclick="showParser('network')">Сетевой адрес (Новгород 04)</button>
+                <button class="parser-btn" onclick="showParser('password')">Генератор парольных команд</button>
+                <button class="parser-btn" onclick="showParser('two-dates')">Генератор для суточных на не СПОДЭС</button>
+                <button class="parser-btn" onclick="showParser('port200')">Генератор команд для пультов на старых СПОДЭС</button>
+                <button class="parser-btn" onclick="showParser('scheduler')">Парсер и генератор команд планировщика</button>
+            </div>
+        </div>
+
+        <!-- Парсер времени -->
+        <div id="time-parser" class="section hidden">
+            <h2>Генератор HEX-команд времени на 4 порт</h2>
+            <div class="input-group">
+                <label for="date">Дата:</label>
+                <input type="date" id="date" required>
+            </div>
+            <div class="input-group">
+                <label for="time">Время (часы:минуты):</label>
+                <input type="time" id="time" required>
+            </div>
+            <button class="generate" onclick="generateTimeCommand()">Сгенерировать команду</button>
+            <div class="output" id="time-output">
+                <span class="output-label">Результат:</span>
+                <div id="time-result">Здесь появится сгенерированная команда...</div>
+                <button class="copy-btn" onclick="copyToClipboard('time-result')">Копировать</button>
+            </div>
+            <button class="parser-btn back-btn" onclick="showMainMenu()">Назад</button>
+        </div>
+
+        <!-- Парсер событий -->
+        <div id="events-parser" class="section hidden">
+            <h2>Генератор команд событий на 4 порт</h2>
+            <div class="input-group">
+                <h3>Примеры статических команд</h3>
+                <div id="staticCommandsList">
+                    <div class="command-item">
+                        <strong>Команда:</strong> C101C00046000060030AFF04001685<br>
+                        <strong>Описание:</strong> Перевод на 133 режим работы реле 
+                    </div>
+                    <div class="command-item">
+                        <strong>Команда:</strong> C101C000470000110000FF0B0002020202090600000A006AFF1200010202090600000A006AFF120002<br>
+                        <strong>Описание:</strong> Команда на установку реле нагрузки
+                    </div>
+                </div>
+            </div>
+            <div class="input-group">
+                <h3>Задержка появления события (FF06)</h3>
+                <input type="number" id="secondsFF06" placeholder="Секунды (например, 15)" min="0" step="1">
+                <button class="generate" onclick="generateEventCommand('FF06')">Сгенерировать FF06</button>
+                <div class="output" id="output-ff06">
+                    <div id="outputFF06">Ожидание ввода...</div>
+                    <button class="copy-btn" onclick="copyToClipboard('outputFF06')">Копировать</button>
+                </div>
+            </div>
+            <div class="input-group">
+                <h3>Задержка пропадания события (FF07)</h3>
+                <input type="number" id="secondsFF07" placeholder="Секунды (например, 1800)" min="0" step="1">
+                <button class="generate" onclick="generateEventCommand('FF07')">Сгенерировать FF07</button>
+                <div class="output" id="output-ff07">
+                    <div id="outputFF07">Ожидание ввода...</div>
+                    <button class="copy-btn" onclick="copyToClipboard('outputFF07')">Копировать</button>
+                </div>
+            </div>
+            <button class="parser-btn back-btn" onclick="showMainMenu()">Назад</button>
+        </div>
+
+        <!-- Парсер сетевого адреса на 201 порт -->
+        <div id="network-parser" class="section hidden">
+            <h2>Сетевой адрес (Новгород 04) на 201 порт</h2>
+            <div class="input-group">
+                <label for="inputNumber">Серийный номер ПУ:</label>
+                <input type="text" id="inputNumber" placeholder="Введите серийный номер">
+                <button class="generate" onclick="calculateNetworkAddress()">Рассчитать</button>
+                <div class="output" id="network-output">
+                    <span class="output-label">Результат:</span>
+                    <div id="network-result">Здесь появится сгенерированная команда...</div>
+                    <button class="copy-btn" onclick="copyToClipboard('network-result')">Копировать</button>
+                </div>
+            </div>
+            <button class="parser-btn back-btn" onclick="showMainMenu()">Назад</button>
+        </div>
+
+        <!-- Парсер парольных команд -->
+        <div id="password-parser" class="section hidden">
+            <h2>Генератор парольных команд на 201 порт</h2>
+            <div class="input-group">
+                <label for="password-input">Пароль (16 символов):</label>
+                <input type="text" id="password-input" maxlength="16" placeholder="Введите пароль (16 символов)">
+                <div class="password-examples">
+                    <button class="example-btn parser-btn" onclick="setPasswordExample('2222222222222222')">Пример 1: 2222222222222222</button>
+                    <button class="example-btn parser-btn" onclick="setPasswordExample('1234567812345678')">Пример 2: 1234567812345678</button>
+                    <button class="example-btn parser-btn" onclick="setPasswordExample('0030852222222222')">Пример 3: 0030852222222222</button>
+                </div>
+                <button class="generate" onclick="generatePasswordCommand()">Сгенерировать команду</button>
+                <div class="output" id="password-output">
+                    <span class="output-label">Результат:</span>
+                    <div id="password-result">Здесь появится сгенерированная команда...</div>
+                    <button class="copy-btn" onclick="copyToClipboard('password-result')">Копировать</button>
+                </div>
+            </div>
+            <div class="input-group">
+                <h3>Примеры команд:</h3>
+                <div class="command-item">
+                    <strong>Команда:</strong> E0010020001032323232323232323232323232323232 - стандартная для Меркуриев<br>
+                    <strong>Пароль:</strong> 2222222222222222
+                </div>
+                <div class="command-item">
+                    <strong>Команда:</strong> E0010020001031323334353637383132333435363738 - стандартная для Энергомер<br>
+                    <strong>Пароль:</strong> 1234567812345678
+                </div>
+                <div class="command-item">
+                    <strong>Команда:</strong> E0010020001030303330383532323232323232323232 - измененный пароль для Краснодара<br>
+                    <strong>Пароль:</strong> 0030852222222222
+                </div>
+            </div>
+            <button class="parser-btn back-btn" onclick="showMainMenu()">Назад</button>
+        </div>
+
+        <!-- Парсер двух дат -->
+        <div id="two-dates-parser" class="section hidden">
+            <h2>Генератор HEX-команд суточных на не СПОДЭС</h2>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="dateFrom">Дата начала:</label>
+                    <input type="date" id="dateFrom" required>
+                </div>
+                <div class="input-group">
+                    <label for="dateTo">Дата окончания:</label>
+                    <input type="date" id="dateTo" required>
+                </div>
+            </div>
+            <div class="mask-settings">
+                <h3>Настройки маски параметров</h3>
+                <div class="mask-option">
+                    <input type="checkbox" id="rMinus">
+                    <label for="rMinus">R-</label>
+                </div>
+                <div class="mask-option">
+                    <input type="checkbox" id="rPlus">
+                    <label for="rPlus">R+</label>
+                </div>
+                <div class="mask-option">
+                    <input type="checkbox" id="aMinus">
+                    <label for="aMinus">A-</label>
+                </div>
+                <div class="mask-option">
+                    <input type="checkbox" id="aPlus" checked>
+                    <label for="aPlus">A+</label>
+                </div>
+                <div class="mask-option">
+                    <input type="checkbox" id="t3">
+                    <label for="t3">T3</label>
+                </div>
+                <div class="mask-option">
+                    <input type="checkbox" id="t2" checked>
+                    <label for="t2">T2</label>
+                </div>
+                <div class="mask-option">
+                    <input type="checkbox" id="t1" checked>
+                    <label for="t1">T1</label>
+                </div>
+                <div class="mask-option">
+                    <input type="checkbox" id="t0" checked>
+                    <label for="t0">T0</label>
+                </div>
+            </div>
+            <button class="generate" onclick="generateTwoDatesCommand()">Сгенерировать команду</button>
+            <div class="output" id="two-dates-output">
+                <span class="output-label">Результат:</span>
+                <div id="two-dates-result">Здесь появится сгенерированная команда...</div>
+                <button class="copy-btn" onclick="copyToClipboard('two-dates-result')">Копировать</button>
+            </div>
+            <div class="explanation">
+                <h3>Как работает кодировка:</h3>
+                <p>Формат команды: <strong>57[маска][год+день1][год+месяц1][год+день2][год+месяц2]</strong></p>
+                <ul>
+                    <li>Год кодируется 7 битами (последние 2 цифры года)</li>
+                    <li>Для дней берутся 3 старших бита года + 5 бит дня</li>
+                    <li>Для месяцев берутся 4 старших бита года + 4 бита месяца</li>
+                </ul>
+            </div>
+            <button class="parser-btn back-btn" onclick="showMainMenu()">Назад</button>
+        </div>
+
+        <!-- Генератор команд для 200 порта -->
+        <div id="port200-parser" class="section hidden">
+            <h2>Генератор команд для 200 порта</h2>
+            <div class="instructions">
+                <h3>Формат команды:</h3>
+                <p><code>0200[32 байта данных]0000ffff</code></p>
+                <p>Пример для пульта <code>000ADBFE</code>:<br>
+                <code>0200FEDB0A00FEDB0A00FEDB0A00FEDB0A00FEDB0A00FEDB0A00FEDB0A00FEDB0A000000ffff</code></p>
+            </div>
+            <div class="input-group">
+                <label for="pultId">ID пульта (8 символов HEX):</label>
+                <input type="text" id="pultId" placeholder="000ADBFE" maxlength="8">
+                <button class="generate" onclick="generatePort200Command()">Сгенерировать команду</button>
+                <div class="output" id="port200-output">
+                    <span class="output-label">Результат:</span>
+                    <div id="port200-result">Здесь появится сгенерированная команда...</div>
+                    <button class="copy-btn" onclick="copyToClipboard('port200-result')">Копировать</button>
+                </div>
+            </div>
+            <button class="parser-btn back-btn" onclick="showMainMenu()">Назад</button>
+        </div>
+
+        <!-- Парсер и генератор команд планировщика -->
+        <div id="scheduler-parser" class="section hidden">
+            <h2>Парсер и генератор команд планировщика</h2>
+            <div class="tabs">
+                <div class="tab active" data-tab="scheduler-parser-tab">Парсер команд</div>
+                <div class="tab" data-tab="scheduler-generator-tab">Генератор команд</div>
+            </div>
+            <div class="tab-content active" id="scheduler-parser-tab">
+                <div class="input-group">
+                    <h3>Парсер команд</h3>
+                    <p>Этот инструмент анализирует HEX-команды планировщика</p>
+                    <textarea id="commandInput" placeholder="Введите HEX-команду (например: F001C8000000038403270066000800000000000F)"></textarea>
+                    <button class="generate" id="parseButton">Разобрать команду</button>
+                    <div id="errorMessage" class="error"></div>
+                </div>
+                <div class="input-group">
+                    <h3>Результат разбора</h3>
+                    <div id="commandInfo"></div>
+                    <div id="parametersInfo"></div>
+                    <div id="detailedParametersInfo"></div>
+                </div>
+            </div>
+            <div class="tab-content" id="scheduler-generator-tab">
+                <div class="input-group">
+                    <h3>Генератор задач планировщика</h3>
+                    <label>Задача:</label>
+                    <input type="number" id="taskId" value="1">
+                    <label>Период (сек):</label>
+                    <input type="number" id="periodSec" value="2100">
+                    <label>Задержка (сек):</label>
+                    <input type="number" id="delaySec" value="0">
+                    <input type="hidden" id="commandCode" value="0066">
+                    <label>Номер журнала для заполнения (HEX):</label>
+                    <input type="text" id="journalId" value="1" maxlength="4">
+                    <label>Выберите объекты:</label>
+                    <div class="objects-container" id="objectsContainer"></div>
+                    <button class="generate" id="generateButton">Сгенерировать HEX</button>
+                    <div class="output" id="hexOutput"></div>
+                </div>
+                <div class="explanation">
+                    <h3>Информация о генераторе</h3>
+                    <p>Этот инструмент позволяет генерировать HEX-команды для планировщика.</p>
+                    <p>Для команды чтения DLMS регистров (0066):</p>
+                    <ul>
+                        <li>Task ID - номер задачи (1-255)</li>
+                        <li>Период - интервал выполнения задачи в секундах</li>
+                        <li>Задержка - задержка перед первым выполнением в секундах</li>
+                        <li>ID журнала - идентификатор журнала в HEX (например, 1E)</li>
+                        <li>Объекты - выбираемые объекты для чтения (2-15)</li>
+                    </ul>
+                </div>
+            </div>
+            <button class="parser-btn back-btn" onclick="showMainMenu()">Назад</button>
+        </div>
+    </div>
+
+    <script>
+        // Константы для парсера времени
+        const BASE_UTC_SECONDS = 65176;
+        const FIXED_PREFIX_TIME = "C101C100080000010000FF0200090C";
+
+        // Константы для парсера событий
+        const PREFIX_FF06 = "C101C000470000110000FF06000600";
+        const PREFIX_FF07 = "C101C000470000110000FF07000600";
+
+        // Константа для парсера паролей
+        const PASSWORD_PREFIX = "E00100200010";
+
+        // Показать главное меню
+        function showMainMenu() {
+            hideAllSections();
+            document.getElementById('main-menu').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('main-menu').style.opacity = '1';
+                document.getElementById('main-menu').style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        // Скрыть все секции
+        function hideAllSections() {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+                section.style.opacity = '0';
+                section.style.transform = 'translateY(20px)';
+            });
+        }
+
+        // Показать выбранный парсер
+        function showParser(parserType) {
+            hideAllSections();
+            const section = document.getElementById(`${parserType}-parser`);
+            section.classList.remove('hidden');
+            setTimeout(() => {
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, 10);
+            if (parserType === 'time') {
+                const now = new Date();
+                document.getElementById('date').valueAsDate = now;
+                document.getElementById('time').value = 
+                    `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            } else if (parserType === 'two-dates') {
+                const today = new Date();
+                const todayFormatted = formatDateForInput(today);
+                document.getElementById('dateFrom').value = todayFormatted;
+                document.getElementById('dateTo').value = todayFormatted;
+                document.getElementById('aPlus').checked = true;
+                document.getElementById('t2').checked = true;
+                document.getElementById('t1').checked = true;
+                document.getElementById('t0').checked = true;
+            } else if (parserType === 'scheduler') {
+                initObjectCheckboxes();
+            }
+        }
+
+        // Функция для форматирования даты в формат YYYY-MM-DD
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // ===== Парсер времени =====
+        function generateTimeCommand() {
+            const date = new Date(document.getElementById('date').value);
+            const time = document.getElementById('time').value.split(':');
+            if (!date || !time) {
+                showAlert("Укажите дату и время!", 'error');
+                return;
+            }
+            const hexParts = [
+                decToHex(date.getFullYear(), 4),
+                decToHex(date.getMonth() + 1, 2),
+                decToHex(date.getDate(), 2),
+                "FF",
+                decToHex(parseInt(time[0]), 2),
+                decToHex(parseInt(time[1]), 2),
+                "00",
+                "FF",
+                decToHex(BASE_UTC_SECONDS + 3 * 60, 4),
+                "00"
+            ];
+            const result = FIXED_PREFIX_TIME + hexParts.join('');
+            document.getElementById('time-result').textContent = result;
+            showOutput('time-output');
+            showAlert("Команда успешно сгенерирована!", 'success');
+        }
+
+        // ===== Парсер событий =====
+        function generateEventCommand(type) {
+            const inputId = `seconds${type}`;
+            const outputId = `output${type}`;
+            const outputContainer = `output-${type.toLowerCase()}`;
+            const seconds = parseInt(document.getElementById(inputId).value);
+            if (isNaN(seconds)) {
+                showAlert("Введите количество секунд!", 'error');
+                return;
+            }
+            const hexValue = seconds.toString(16).padStart(8, '0').toUpperCase();
+            const command = (type === "FF06" ? PREFIX_FF06 : PREFIX_FF07) + hexValue;
+            document.getElementById(outputId).textContent = command;
+            showOutput(outputContainer);
+            showAlert(`Команда ${type} сгенерирована!`, 'success');
+        }
+
+        // ===== Парсер сетевого адреса =====
+        function calculateNetworkAddress() {
+            const input = document.getElementById('inputNumber').value.trim();
+            if (!input) {
+                showAlert('Введите серийный номер!', 'error');
+                return;
+            }
+            const last3 = input.slice(-3);
+            const numLast3 = parseInt(last3, 10);
+            let b1;
+            if (numLast3 > 124) {
+                b1 = input.slice(-2);
+            } else if (numLast3 > 99) {
+                b1 = last3;
+            } else {
+                b1 = input.slice(-2);
+            }
+            const numB1 = parseInt(b1, 10);
+            let c1;
+            if (numB1 < 7) {
+                c1 = numB1 + 20;
+            } else if (numB1 < 17) {
+                c1 = numB1 + 10;
+            } else {
+                c1 = numB1;
+            }
+            let d1;
+            if (c1 < 100) {
+                d1 = `000E023${String(c1).charAt(0)}3${String(c1).slice(-1)}`;
+            } else {
+                d1 = `000E033${String(c1).charAt(0)}3${String(c1).charAt(1)}3${String(c1).slice(-1)}`;
+            }
+            document.getElementById('network-result').textContent = d1;
+            showOutput('network-output');
+            showAlert("Сетевой адрес рассчитан!", 'success');
+        }
+
+        // ===== Парсер парольных команд =====
+        function setPasswordExample(password) {
+            document.getElementById('password-input').value = password;
+            document.getElementById('password-input').focus();
+            showAlert(`Пример пароля "${password}" загружен`, 'info');
+        }
+
+        function generatePasswordCommand() {
+            const password = document.getElementById('password-input').value.trim();
+            if (password.length !== 16) {
+                showAlert("Пароль должен содержать ровно 16 символов!", 'error');
+                return;
+            }
+            let hexPassword = '';
+            for (let i = 0; i < password.length; i++) {
+                const charCode = password.charCodeAt(i);
+                hexPassword += charCode.toString(16).padStart(2, '0');
+            }
+            const command = PASSWORD_PREFIX + hexPassword.toUpperCase();
+            document.getElementById('password-result').textContent = command;
+            showOutput('password-output');
+            showAlert("Команда с паролем сгенерирована!", 'success');
+        }
+
+        // ===== Парсер двух дат =====
+        function generateTwoDatesCommand() {
+            try {
+                const dateFrom = new Date(document.getElementById('dateFrom').value);
+                const dateTo = new Date(document.getElementById('dateTo').value);
+                if (!dateFrom || !dateTo) {
+                    showAlert("Пожалуйста, укажите обе даты!", 'error');
+                    return;
+                }
+                if (dateFrom > dateTo) {
+                    showAlert("Дата начала должна быть раньше даты окончания!", 'error');
+                    return;
+                }
+                const code = "57";
+                const maskBinary = [
+                    document.getElementById('rMinus').checked ? '1' : '0',
+                    document.getElementById('rPlus').checked ? '1' : '0',
+                    document.getElementById('aMinus').checked ? '1' : '0',
+                    document.getElementById('aPlus').checked ? '1' : '0',
+                    document.getElementById('t3').checked ? '1' : '0',
+                    document.getElementById('t2').checked ? '1' : '0',
+                    document.getElementById('t1').checked ? '1' : '0',
+                    document.getElementById('t0').checked ? '1' : '0'
+                ].join('');
+                const maskHex = binaryToHex(maskBinary);
+                const fromDay = dateFrom.getDate();
+                const fromMonth = dateFrom.getMonth() + 1;
+                const fromYear = dateFrom.getFullYear() % 100;
+                const fromYearDayHex = encodeDatePart(fromYear, fromDay, 'day');
+                const fromYearMonthHex = encodeDatePart(fromYear, fromMonth, 'month');
+                const toDay = dateTo.getDate();
+                const toMonth = dateTo.getMonth() + 1;
+                const toYear = dateTo.getFullYear() % 100;
+                const toYearDayHex = encodeDatePart(toYear, toDay, 'day');
+                const toYearMonthHex = encodeDatePart(toYear, toMonth, 'month');
+                const command = code + maskHex + fromYearDayHex + fromYearMonthHex + toYearDayHex + toYearMonthHex;
+                document.getElementById('two-dates-result').textContent = command;
+                showOutput('two-dates-output');
+                showAlert("Команда успешно сгенерирована!", 'success');
+            } catch (error) {
+                console.error("Ошибка генерации команды:", error);
+                showAlert("Произошла ошибка при генерации команды. Проверьте введенные данные.", 'error');
+            }
+        }
+
+        function encodeDatePart(year, value, type) {
+            const yearBinary = decToBin(year, 7);
+            if (type === 'day') {
+                const dayBinary = decToBin(value, 5);
+                const combined = yearBinary.substring(0, 3) + dayBinary;
+                return binaryToHex(combined);
+            } else if (type === 'month') {
+                const monthBinary = decToBin(value, 4);
+                const combined = yearBinary.substring(0, 4) + monthBinary;
+                return binaryToHex(combined);
+            }
+            return "00";
+        }
+
+        // ===== Генератор команд для 200 порта =====
+        function generatePort200Command() {
+            const pultId = document.getElementById('pultId').value.trim().toUpperCase();
+            if (!/^[0-9A-F]{8}$/.test(pultId)) {
+                showAlert('Введите корректный ID пульта (8 HEX символов)', 'error');
+                return;
+            }
+            const reversed = reverseHexBytes(pultId);
+            const dataPart = reversed.repeat(8);
+            const fullCommand = `0200${dataPart}0000ffff`;
+            document.getElementById('port200-result').textContent = fullCommand;
+            showOutput('port200-output');
+            showAlert("Команда для 200 порта сгенерирована!", 'success');
+        }
+
+        function reverseHexBytes(hex) {
+            const bytes = hex.match(/.{2}/g);
+            return bytes.reverse().join('');
+        }
+
+        // ===== Парсер и генератор команд планировщика =====
+        class SchedulerParser {
+            static parseCommand(command) {
+                if (!command || typeof command !== 'string') {
+                    throw new Error('Команда должна быть непустой строкой');
+                }
+                const cleanCommand = command.replace(/\s+/g, '');
+                if (cleanCommand.length < 40) {
+                    throw new Error('Команда слишком короткая. Минимальная длина - 40 символов');
+                }
+                return {
+                    command: this._extractPart(cleanCommand, 0, 4),
+                    status: this._extractPart(cleanCommand, 4, 2),
+                    taskNumber: this._extractPart(cleanCommand, 6, 2),
+                    executionPeriod: {
+                        hex: this._extractPart(cleanCommand, 8, 8),
+                        dec: this._hexToDec(this._extractPart(cleanCommand, 8, 8))
+                    },
+                    executionDelay: {
+                        hex: this._extractPart(cleanCommand, 16, 4),
+                        dec: this._hexToDec(this._extractPart(cleanCommand, 16, 4))
+                    },
+                    schedulerCommand: this._extractPart(cleanCommand, 20, 4),
+                    parameters: this._extractPart(cleanCommand, 24, 16)
+                };
+            }
+
+            static _extractPart(str, start, length) {
+                return str.substring(start, start + length);
+            }
+
+            static _hexToDec(hex) {
+                return parseInt(hex, 16);
+            }
+
+            static getStatusDescription(status) {
+                const statusMap = {
+                    'C8': 'Успех',
+                    '00': 'Не выполнена',
+                    'FF': 'Ошибка выполнения'
+                };
+                return statusMap[status] || `Неизвестный статус (${status})`;
+            }
+
+            static getCommandDescription(command) {
+                const commandMap = {
+                    '0020': 'Профиль «0» – получение 1 показания через определенный период',
+                    '0021': 'Профиль «1» – получение 1 показания по поднесению магнита',
+                    '0022': 'Профиль «2» – получение 1 показания за определенные дни месяца',
+                    '0023': 'Профиль «3» – для запроса архива посуточных показаний',
+                    '0024': 'Профиль «4» – для запроса архива помесячных показаний',
+                    '0025': 'Профиль «5» – показание по таймеру от счетчика',
+                    '0026': 'Профиль «6» – показание по нажатию кнопки на счетчике',
+                    '0066': 'Команда чтения DLMS регистра'
+                };
+                return commandMap[command] || `Неизвестная команда (${command})`;
+            }
+
+            static parseParameters(params, schedulerCommand) {
+                if (!params || params.length !== 16) {
+                    throw new Error('Параметры должны быть 16-символьной HEX-строкой');
+                }
+                const binaryStr = this._hexToBinary(params);
+                const parameters = [];
+                for (let i = 0; i < 48; i++) {
+                    parameters.push({
+                        objectNumber: i + 1,
+                        isActive: binaryStr.charAt(i) === '1'
+                    });
+                }
+                let detailedInfo = null;
+                if (schedulerCommand === '0066') {
+                    const profileNumberHex = params.substring(0, 4);
+                    const maskHex = params.substring(4);
+                    detailedInfo = {
+                        type: 'dlms',
+                        profileNumber: {
+                            hex: profileNumberHex,
+                            dec: this._hexToDec(profileNumberHex)
+                        },
+                        mask: {
+                            hex: maskHex,
+                            binary: this._hexToBinary(maskHex),
+                            dec: this._hexToDec(maskHex)
+                        }
+                    };
+                } else if (['0020', '0021', '0022', '0023', '0024', '0025', '0026'].includes(schedulerCommand)) {
+                    detailedInfo = {
+                        type: 'profile',
+                        profileNumber: {
+                            hex: params.substring(0, 4),
+                            dec: this._hexToDec(params.substring(0, 4))
+                        },
+                        additionalParams: params.substring(4)
+                    };
+                }
+                return {
+                    basicParameters: parameters,
+                    detailedInfo: detailedInfo
+                };
+            }
+
+            static _hexToBinary(hex) {
+                let binary = '';
+                for (let i = 0; i < hex.length; i++) {
+                    const byte = parseInt(hex.charAt(i), 16).toString(2).padStart(4, '0');
+                    binary += byte;
+                }
+                return binary;
+            }
+        }
+
+        class SchedulerTask {
+            constructor(taskId, periodSec, delaySec, commandCode, journalId, selectedObjects = []) {
+                this.taskId = taskId;
+                this.periodSec = periodSec;
+                this.delaySec = delaySec;
+                this.commandCode = commandCode.toUpperCase().padStart(4, '0');
+                this.journalId = journalId.toUpperCase().padStart(4, '0');
+                this.selectedObjects = selectedObjects;
+            }
+
+            toHex() {
+                const taskHex = this.taskId.toString(16).padStart(2, '0').toUpperCase();
+                const periodHex = this.periodSec.toString(16).padStart(8, '0').toUpperCase();
+                const delayHex = this.delaySec.toString(16).padStart(4, '0').toUpperCase();
+                const commandCodeHex = this.commandCode.padStart(4, '0').toUpperCase();
+                const journalIdHex = this.journalId.padStart(4, '0').toUpperCase();
+                let objectMask = 0;
+                for (const obj of this.selectedObjects) {
+                    objectMask |= (1 << (obj - 2));
+                }
+                const objectMaskHex = objectMask.toString(16).padStart(12, '0').toUpperCase();
+                return `F002${taskHex}${periodHex}${delayHex}${commandCodeHex}${journalIdHex}${objectMaskHex}`;
+            }
+
+            static fromHex(hex) {
+                const prefix = hex.slice(0, 4);
+                if (!['F001', 'F002'].includes(prefix)) throw new Error('Unsupported command prefix: ' + prefix);
+                const taskId = parseInt(hex.slice(4, 6), 16);
+                const periodSec = parseInt(hex.slice(6, 14), 16);
+                const delaySec = parseInt(hex.slice(14, 18), 16);
+                const commandCode = hex.slice(18, 22).toUpperCase();
+                const journalIdFull = hex.slice(22, 26).toUpperCase();
+                const objectMask = parseInt(hex.slice(26), 16);
+                const journalId = journalIdFull.replace(/^0+/, '') || '0';
+                const selectedObjects = [];
+                for (let i = 2; i <= 15; i++) {
+                    if (objectMask & (1 << (i - 2))) {
+                        selectedObjects.push(i);
+                    }
+                }
+                return new SchedulerTask(taskId, periodSec, delaySec, commandCode, journalId, selectedObjects);
+            }
+        }
+
+        function initObjectCheckboxes() {
+            const objectsContainer = document.getElementById('objectsContainer');
+            objectsContainer.innerHTML = '';
+            for (let i = 2; i <= 15; i++) {
+                const div = document.createElement('div');
+                div.className = 'object-item';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `object${i}`;
+                checkbox.value = i;
+                const label = document.createElement('label');
+                label.htmlFor = `object${i}`;
+                label.textContent = `${i} объект`;
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                objectsContainer.appendChild(div);
+            }
+        }
+
+        function getSelectedObjects() {
+            const checkboxes = document.querySelectorAll('.object-item input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
+        }
+
+        function parseCommand() {
+            const errorMessage = document.getElementById('errorMessage');
+            const commandInfo = document.getElementById('commandInfo');
+            const parametersInfo = document.getElementById('parametersInfo');
+            const detailedParametersInfo = document.getElementById('detailedParametersInfo');
+            errorMessage.textContent = '';
+            commandInfo.innerHTML = '';
+            parametersInfo.innerHTML = '';
+            detailedParametersInfo.innerHTML = '';
+            try {
+                const command = document.getElementById('commandInput').value.trim();
+                const parsed = SchedulerParser.parseCommand(command);
+                let infoHTML = `
+                    <table>
+                        <tr>
+                            <th>Параметр</th>
+                            <th>HEX-значение</th>
+                            <th>DEC-значение</th>
+                            <th>Описание</th>
+                        </tr>
+                        <tr>
+                            <td>Команда</td>
+                            <td class="hex-value">${parsed.command}</td>
+                            <td></td>
+                            <td>${parsed.command === 'F001' ? 
+                                '<span class="success">Корректная команда</span>' : 
+                                '<span class="error">Некорректная команда (должна быть F001)</span>'}</td>
+                        </tr>
+                        <tr>
+                            <td>Статус</td>
+                            <td class="hex-value">${parsed.status}</td>
+                            <td></td>
+                            <td>${SchedulerParser.getStatusDescription(parsed.status)}</td>
+                        </tr>
+                        <tr>
+                            <td>Номер задачи</td>
+                            <td class="hex-value">${parsed.taskNumber}</td>
+                            <td>${SchedulerParser._hexToDec(parsed.taskNumber)}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Период выполнения</td>
+                            <td class="hex-value">${parsed.executionPeriod.hex}</td>
+                            <td>${parsed.executionPeriod.dec} сек (${Math.round(parsed.executionPeriod.dec / 60)} мин)</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Задержка выполнения</td>
+                            <td class="hex-value">${parsed.executionDelay.hex}</td>
+                            <td>${parsed.executionDelay.dec} сек (${Math.round(parsed.executionDelay.dec / 60)} мин)</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Команда планировщика</td>
+                            <td class="hex-value">${parsed.schedulerCommand}</td>
+                            <td></td>
+                            <td>${SchedulerParser.getCommandDescription(parsed.schedulerCommand)}</td>
+                        </tr>
+                    </table>
+                `;
+                commandInfo.innerHTML = infoHTML;
+                const parameters = SchedulerParser.parseParameters(parsed.parameters, parsed.schedulerCommand);
+                if (parameters.detailedInfo) {
+                    let detailedHTML = '<h3>Детальный разбор параметров</h3>';
+                    if (parameters.detailedInfo.type === 'dlms') {
+                        detailedHTML += `
+                            <table>
+                                <tr>
+                                    <th>Параметр</th>
+                                    <th>HEX-значение</th>
+                                    <th>DEC-значение</th>
+                                    <th>Дополнительно</th>
+                                </tr>
+                                <tr>
+                                    <td>Номер профиля</td>
+                                    <td class="hex-value">${parameters.detailedInfo.profileNumber.hex}</td>
+                                    <td>${parameters.detailedInfo.profileNumber.dec}</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td>Маска</td>
+                                    <td class="hex-value">${parameters.detailedInfo.mask.hex}</td>
+                                    <td>${parameters.detailedInfo.mask.dec}</td>
+                                    <td class="binary-mask">BIN: ${parameters.detailedInfo.mask.binary}</td>
+                                </tr>
+                            </table>
+                            <p>Маска определяет, какие именно регистры будут читаться. Каждый бит соответствует определенному регистру.</p>
+                        `;
+                    } else if (parameters.detailedInfo.type === 'profile') {
+                        detailedHTML += `
+                            <table>
+                                <tr>
+                                    <th>Параметр</th>
+                                    <th>HEX-значение</th>
+                                    <th>DEC-значение</th>
+                                </tr>
+                                <tr>
+                                    <td>Номер профиля</td>
+                                    <td class="hex-value">${parameters.detailedInfo.profileNumber.hex}</td>
+                                    <td>${parameters.detailedInfo.profileNumber.dec}</td>
+                                </tr>
+                                <tr>
+                                    <td>Дополнительные параметры</td>
+                                    <td class="hex-value">${parameters.detailedInfo.additionalParams}</td>
+                                    <td></td>
+                                </tr>
+                            </table>
+                        `;
+                    }
+                    detailedParametersInfo.innerHTML = detailedHTML;
+                }
+                showAlert("Команда успешно разобрана!", 'success');
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = `Ошибка: ${error.message}`;
+                showAlert(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        function generateCommand() {
+            try {
+                const task = new SchedulerTask(
+                    parseInt(document.getElementById('taskId').value),
+                    parseInt(document.getElementById('periodSec').value),
+                    parseInt(document.getElementById('delaySec').value),
+                    document.getElementById('commandCode').value,
+                    document.getElementById('journalId').value.trim(),
+                    getSelectedObjects()
+                );
+                const hexOutput = document.getElementById('hexOutput');
+                hexOutput.textContent = task.toHex();
+                showOutput('hexOutput');
+                showAlert("Команда успешно сгенерирована!", 'success');
+            } catch (error) {
+                document.getElementById('hexOutput').textContent = `Ошибка: ${error.message}`;
+                showAlert(`Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Переключение вкладок в парсере планировщика
+        function initTabs() {
+            const tabs = document.querySelectorAll('#scheduler-parser .tab');
+            const tabContents = document.querySelectorAll('#scheduler-parser .tab-content');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab).classList.add('active');
+                });
+            });
+        }
+
+        // Вспомогательные функции
+        function decToHex(number, length) {
+            return number.toString(16).toUpperCase().padStart(length, '0');
+        }
+
+        function decToBin(number, length) {
+            return number.toString(2).padStart(length, '0');
+        }
+
+        function binaryToHex(binary) {
+            return parseInt(binary, 2).toString(16).toUpperCase().padStart(2, '0');
+        }
+
+        function showOutput(id) {
+            const output = document.getElementById(id);
+            output.classList.add('visible');
+            setTimeout(() => {
+                output.style.maxHeight = '500px';
+                output.style.opacity = '1';
+            }, 10);
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert("Текст скопирован в буфер обмена!", 'success');
+            }).catch(err => {
+                console.error('Ошибка копирования: ', err);
+                showAlert("Не удалось скопировать текст", 'error');
+            });
+        }
+
+        function showAlert(message, type) {
+            console.log(`[${type}] ${message}`);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const themeToggle = document.querySelector('.theme-toggle');
+            themeToggle.classList.add('pulse');
+            setTimeout(() => themeToggle.classList.remove('pulse'), 1500);
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            showMainMenu();
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+            initTabs();
+            document.getElementById('parseButton').addEventListener('click', parseCommand);
+            document.getElementById('generateButton').addEventListener('click', generateCommand);
+        });
+    </script>
+</body>
+</html>

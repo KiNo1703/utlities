@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ XLSX файлов с показаниями ПУ</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🕊️</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .radio-group, .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+        }
+        .process-btn {
+            background-color: #4CAF50;
+        }
+        .process-btn:hover {
+            background-color: #45a049;
+        }
+        .download-btn {
+            background-color: #2196F3;
+            display: none;
+        }
+        .download-btn:hover {
+            background-color: #0b7dda;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            min-height: 100px;
+        }
+        .instructions {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #fffde7;
+            border-left: 4px solid #ffd600;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Анализ XLSX файлов с показаниями ПУ</h1>
+
+        <div class="instructions">
+            <strong>Инструкция:</strong> Выберите интервал показаний, отметьте необходимость отображения только ПУ с пропусками, загрузите XLSX файл из отчета "Отчет получасовых показаний" и нажмите "Обработать".
+        </div>
+
+        <div class="form-group">
+            <label>Интервал показаний:</label>
+            <div class="radio-group">
+                <input type="radio" id="halfHourly" name="interval" value="halfHourly" checked>
+                <label for="halfHourly"> Часовые показания</label>
+                <input type="radio" id="hourly" name="interval" value="hourly">
+                <label for="hourly">Получасовые показания</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox" id="onlyMissing" checked>
+                <label for="onlyMissing">Показывать только ПУ с пропусками</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="fileInput">Выберите XLSX файл:</label>
+            <input type="file" id="fileInput" accept=".xlsx">
+        </div>
+
+        <div class="button-group">
+            <button class="process-btn" onclick="processFile()">Обработать</button>
+            <button class="download-btn" id="downloadBtn" onclick="downloadResults()">Скачать результаты (TXT)</button>
+        </div>
+
+        <div class="result" id="output"></div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let currentResult = ''; // Для хранения результатов для скачивания
+
+        function excelSerialToDate(serial) {
+            if (!serial) return null;
+            const utc_days = Math.floor(serial - 25569);
+            const utc_value = utc_days * 86400;
+            const date_info = new Date(utc_value * 1000);
+            const fractional_day = serial - Math.floor(serial) + 0.0000001;
+            let total_seconds = Math.floor(86400 * fractional_day);
+            const seconds = total_seconds % 60;
+            total_seconds -= seconds;
+            const hours = Math.floor(total_seconds / (60 * 60));
+            const minutes = Math.floor(total_seconds / 60) % 60;
+            return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+        }
+
+        function formatDate(date) {
+            if (!date) return 'Неизвестно';
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${day}.${month}.${year} ${hours}:${minutes}`;
+        }
+
+        function processFile() {
+            const fileInput = document.getElementById('fileInput');
+            const output = document.getElementById('output');
+            const interval = document.querySelector('input[name="interval"]:checked').value;
+            const onlyMissing = document.getElementById('onlyMissing').checked;
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            if (!fileInput.files[0]) {
+                showNotification('Выберите файл!', 'error');
+                output.textContent = 'Выберите файл!';
+                return;
+            }
+
+            output.textContent = 'Обработка...';
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = e.target.result;
+                    const workbook = XLSX.read(data, { type: 'binary', defval: null });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+                    if (jsonData.length < 2) {
+                        showNotification('Недостаточно данных в файле!', 'error');
+                        output.textContent = 'Недостаточно данных в файле!';
+                        return;
+                    }
+
+                    // Первая строка - заголовки
+                    const headers = jsonData[0];
+                    let snIndex = -1;
+                    let timeStartIndex = -1;
+
+                    // Находим индекс S/N и начало временных столбцов
+                    for (let i = 0; i < headers.length; i++) {
+                        if (typeof headers[i] === 'string' && headers[i].trim() === 'S/N') {
+                            snIndex = i;
+                        }
+                        if (typeof headers[i] === 'number' && Math.floor(headers[i]) >= 40000) {
+                            if (timeStartIndex === -1) timeStartIndex = i;
+                        }
+                    }
+
+                    if (snIndex === -1 || timeStartIndex === -1) {
+                        showNotification('Не найдены необходимые заголовки (S/N или временные метки)!', 'error');
+                        output.textContent = 'Не найдены необходимые заголовки (S/N или временные метки)!';
+                        return;
+                    }
+
+                    let result = '';
+                    let puCount = 0;
+                    let missingPuCount = 0;
+
+                    // Обрабатываем строки данных (начиная со второй)
+                    for (let rowIndex = 1; rowIndex < jsonData.length; rowIndex++) {
+                        const row = jsonData[rowIndex];
+                        if (!row || row.length < timeStartIndex) continue;
+
+                        puCount++;
+                        const sn = row[snIndex] ? row[snIndex].toString() : 'Неизвестно';
+
+                        let missing = [];
+                        for (let col = timeStartIndex; col < headers.length; col++) {
+                            const value = row[col];
+                            const timeSerial = headers[col];
+                            const date = excelSerialToDate(timeSerial);
+
+                            // Пропускаем получасовые интервалы (минуты = 30) в режиме получасовых показаний
+                            if (interval === 'halfHourly' && date && date.getMinutes() === 30) {
+                                continue;
+                            }
+
+                            // Проверяем пустые ячейки (null, undefined, '')
+                            if (value === null || value === undefined || value === '') {
+                                missing.push(formatDate(date));
+                            }
+                        }
+
+                        if (missing.length > 0) {
+                            missingPuCount++;
+                        }
+
+                        if (onlyMissing && missing.length === 0) {
+                            continue; // Пропускаем ПУ без пропусков
+                        }
+
+                        result += `ПУ: ${sn}\n`;
+                        result += 'Отсутствующие показания:\n';
+
+                        if (missing.length === 0) {
+                            result += 'Нет отсутствующих показаний.\n';
+                        } else {
+                            result += missing.join('\n') + '\n';
+                        }
+                        result += '\n';
+                    }
+
+                    if (result === '') {
+                        result = 'Нет ПУ с пропусками (или нет данных).\n';
+                    } else {
+                        result = `Обработано ПУ: ${puCount}. С пропусками: ${missingPuCount}.\n\n` + result;
+                    }
+
+                    currentResult = result;
+                    output.textContent = result;
+                    downloadBtn.style.display = 'inline-block';
+                    showNotification('Файл успешно обработан!');
+                } catch (error) {
+                    showNotification('Ошибка при обработке файла: ' + error.message, 'error');
+                    output.textContent = 'Ошибка при обработке файла: ' + error.message;
+                }
+            };
+
+            reader.readAsBinaryString(file);
+        }
+
+        function downloadResults() {
+            if (!currentResult) {
+                showNotification('Нет данных для скачивания!', 'error');
+                return;
+            }
+            const blob = new Blob([currentResult], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'results.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('Результаты скачаны!');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.backgroundColor = type === 'error' ? '#f44336' : '#4CAF50';
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+

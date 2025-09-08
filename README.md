@@ -20,6 +20,7 @@
 
 # Клонировать репозиторий
 `Bash`
+
 `git clone https://github.com/kino1703/utlities.git`
 
 
@@ -46,6 +47,7 @@
 Обновите массив utilities в index.html:
 
 `javascript`
+
 `{
     name: "Название утилиты",
     url: "packages/имя-папки/index.html",

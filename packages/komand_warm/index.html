@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор команды для DevEUI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        input, textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .result-container {
+            background: white;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .result-container h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .field {
+            margin-bottom: 8px;
+        }
+        .field-name {
+            font-weight: bold;
+            display: inline-block;
+            width: 180px;
+        }
+        code {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            display: block;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .not-found {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+        }
+        .search-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .initial-message {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-style: italic;
+        }
+        .sql-container {
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+        }
+        .copy-btn {
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .copy-btn:hover {
+            background-color: #2980b9;
+        }
+        .copy-btn.copied {
+            background-color: #2ecc71;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        .info {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .buttons-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .button-secondary {
+            background-color: #3498db;
+        }
+        .button-secondary:hover {
+            background-color: #2980b9;
+        }
+        .button-danger {
+            background-color: #e74c3c;
+        }
+        .button-danger:hover {
+            background-color: #c0392b;
+        }
+        .result-info {
+            text-align: center;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Генератор команды для DevEUI</h1>
+    
+    <div class="form-container">
+        <div class="form-group">
+            <label for="port">Порт:</label>
+            <input type="text" id="port" value="201" placeholder="Например: 201">
+        </div>
+        
+        <div class="form-group">
+            <label for="commandCode">Код команды:</label>
+            <input type="text" id="commandCode" value="F002" placeholder="Например: F002">
+        </div>
+        
+        <div class="form-group">
+            <label for="cellNumber">Номер ячейки:</label>
+            <input type="text" id="cellNumber" value="0A" placeholder="Например: 0A">
+        </div>
+        
+        <div class="form-group">
+            <label for="period">Период:</label>
+            <input type="text" id="period" value="00093A80" placeholder="Например: 00093A80">
+        </div>
+        
+        <div class="form-group">
+            <label for="taskCode">Код задачи:</label>
+            <input type="text" id="taskCode" value="0061" placeholder="Например: 0061">
+        </div>
+        
+        <div class="form-group">
+            <label for="commandParams">Параметры команды:</label>
+            <input type="text" id="commandParams" value="0000000000160302" placeholder="Например: 0000000000160302">
+        </div>
+        
+        <div class="form-group">
+            <label for="deveui">DevEUI (один или несколько, через запятую/точку с запятой/новую строку):</label>
+            <textarea id="deveui" placeholder="Например: 04:97:90:00:21:C3:A3:CD
+Или несколько:
+04:97:90:00:21:C3:A3:CD, 04:97:90:00:21:C3:A3:CE
+04:97:90:00:21:C3:A3:CF">04:97:90:00:21:C3:A3:CD</textarea>
+            <div class="info">Можно вводить несколько значений через запятую, точку с запятой или перенос строки</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="retries">Retries (1-9):</label>
+            <input type="number" id="retries" value="5" min="1" max="9">
+        </div>
+        
+        <div class="buttons-container">
+            <button onclick="generateAllResults()">Сгенерировать все результаты</button>
+            <button class="button-secondary" onclick="copyToClipboard()">Копировать результаты</button>
+            <button class="button-danger" onclick="clearAllFields()">Очистить все</button>
+        </div>
+    </div>
+    
+    <div id="result">
+        <div class="initial-message">Заполните поля и нажмите "Сгенерировать все результаты"</div>
+    </div>
+
+    <script>
+        // Функция для генерации случайного кода
+        function generateRandomCode() {
+            const randomValue = Math.floor(65535 * Math.random());
+            const hexValue = randomValue.toString(16).toUpperCase();
+            return hexValue.padStart(4, '0');
+        }
+        
+        // Функция для очистки и нормализации DevEUI
+        function normalizeDevEUI(input) {
+            return input
+                .split(/[\n,;]+/) // разделяем по переносам, запятым, точкам с запятой
+                .map(line => line.trim()) // убираем пробелы
+                .filter(line => line.length > 0) // убираем пустые строки
+                .map(line => line.replace(/\s+/g, '')) // убираем все пробелы
+                .map(line => {
+                    // Добавляем двоеточия, если их нет (форматируем в стандартный вид)
+                    if (line.includes(':')) return line;
+                    if (line.length === 16) {
+                        return line.match(/.{2}/g).join(':');
+                    }
+                    return line;
+                });
+        }
+        
+        // Функция для генерации результата для одного DevEUI
+        function generateSingleResult(deveui, randomCode) {
+            const port = document.getElementById('port').value;
+            const commandCode = document.getElementById('commandCode').value;
+            const cellNumber = document.getElementById('cellNumber').value;
+            const period = document.getElementById('period').value;
+            const taskCode = document.getElementById('taskCode').value;
+            const commandParams = document.getElementById('commandParams').value;
+            const retries = document.getElementById('retries').value;
+            
+            // Объединяем поля 2-7
+            const combinedFields = commandCode + cellNumber + period + randomCode + taskCode + commandParams;
+            
+            // Формируем финальный результат
+            return `${deveui},${port},${combinedFields},${retries}`;
+        }
+        
+        // Функция для генерации всех результатов
+        function generateAllResults() {
+            const deveuiInput = document.getElementById('deveui').value;
+            
+            // Проверяем обязательные поля
+            const port = document.getElementById('port').value;
+            const commandCode = document.getElementById('commandCode').value;
+            const cellNumber = document.getElementById('cellNumber').value;
+            const period = document.getElementById('period').value;
+            const taskCode = document.getElementById('taskCode').value;
+            const commandParams = document.getElementById('commandParams').value;
+            const retries = document.getElementById('retries').value;
+            
+            if (!port || !commandCode || !cellNumber || !period || 
+                !taskCode || !commandParams || !retries || !deveuiInput) {
+                alert('Пожалуйста, заполните все обязательные поля');
+                return;
+            }
+            
+            // Нормализуем DevEUI
+            const deveuiList = normalizeDevEUI(deveuiInput);
+            
+            if (deveuiList.length === 0) {
+                alert('Пожалуйста, введите хотя бы один DevEUI');
+                return;
+            }
+            
+            // Генерируем результаты для каждого DevEUI
+            const results = [];
+            
+            for (const deveui of deveuiList) {
+                const randomCode = generateRandomCode();
+                const result = generateSingleResult(deveui, randomCode);
+                results.push(result);
+            }
+            
+            // Отображаем результаты в одном поле
+            displayResults(results);
+        }
+        
+        // Функция для отображения результатов в одном поле
+        function displayResults(results) {
+            const resultDiv = document.getElementById('result');
+            
+            if (results.length === 0) {
+                resultDiv.innerHTML = '<div class="not-found">Нет результатов для отображения</div>';
+                return;
+            }
+            
+            const allResultsText = results.join('\n');
+            
+            const html = `
+                <div class="result-container">
+                    <h3>Сгенерированные результаты:</h3>
+                    <div class="field">
+                        <span class="field-name">Всего строк:</span> ${results.length}
+                    </div>
+                    <code>${allResultsText}</code>
+                    <button class="copy-btn" onclick="copyToClipboard()">Копировать все результаты</button>
+                    <div class="result-info">Для каждого DevEUI был создан уникальный автоматический код</div>
+                </div>`;
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        // Функция для копирования всех результатов в буфер обмена
+        function copyToClipboard() {
+            const resultCode = document.querySelector('#result code');
+            if (!resultCode) {
+                alert('Нет результатов для копирования');
+                return;
+            }
+            
+            const allResults = resultCode.textContent;
+            
+            navigator.clipboard.writeText(allResults)
+                .then(() => {
+                    // Визуальная обратная связь
+                    const copyButton = document.querySelector('#result .copy-btn');
+                    if (copyButton) {
+                        const originalText = copyButton.textContent;
+                        copyButton.textContent = 'Скопировано!';
+                        copyButton.classList.add('copied');
+                        
+                        setTimeout(() => {
+                            copyButton.textContent = originalText;
+                            copyButton.classList.remove('copied');
+                        }, 2000);
+                    }
+                    alert('Все результаты скопированы в буфер обмена!');
+                })
+                .catch(err => {
+                    console.error('Ошибка при копировании: ', err);
+                    alert('Не удалось скопировать результаты');
+                });
+        }
+        
+        // Функция для очистки всех полей
+        function clearAllFields() {
+            document.getElementById('port').value = '';
+            document.getElementById('commandCode').value = '';
+            document.getElementById('cellNumber').value = '';
+            document.getElementById('period').value = '';
+            document.getElementById('taskCode').value = '';
+            document.getElementById('commandParams').value = '';
+            document.getElementById('deveui').value = '';
+            document.getElementById('retries').value = '5';
+            document.getElementById('result').innerHTML = '<div class="initial-message">Заполните поля и нажмите "Сгенерировать все результаты"</div>';
+        }
+        
+        // Автоматическая обработка ввода DevEUI
+        document.getElementById('deveui').addEventListener('input', function(e) {
+            const input = e.target.value;
+            const lines = input.split('\n').filter(line => line.trim().length > 0);
+            if (lines.length > 1) {
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `<div class="info">Обнаружено DevEUI: ${lines.length}. Нажмите "Сгенерировать все результаты"</div>`;
+            }
+        });
+        
+        // Инициализация при загрузке
+        window.onload = function() {
+            // Устанавливаем значения по умолчанию
+            document.getElementById('port').value = '201';
+            document.getElementById('commandCode').value = 'F002';
+            document.getElementById('cellNumber').value = '0A';
+            document.getElementById('period').value = '00093A80';
+            document.getElementById('taskCode').value = '0061';
+            document.getElementById('commandParams').value = '0000000000160302';
+            document.getElementById('deveui').value = '04:97:90:00:21:C3:A3:CD';
+            document.getElementById('retries').value = '5';
+        };
+    </script>
+</body>
+</html>

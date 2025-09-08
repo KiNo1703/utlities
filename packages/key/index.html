@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор SQL команд для устройств</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        header {
+            background: #4a6fa5;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            font-size: 16px;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .input-section {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-group label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #4a6fa5;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-group label i {
+            margin-right: 8px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #4a6fa5;
+            box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.2);
+        }
+        
+        .actions {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            background: #f9fafb;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+        
+        button i {
+            margin-right: 8px;
+        }
+        
+        .btn-generate {
+            background: #4a6fa5;
+            color: white;
+        }
+        
+        .btn-generate:hover {
+            background: #3c5d8c;
+        }
+        
+        .btn-copy {
+            background: #5bb98c;
+            color: white;
+        }
+        
+        .btn-copy:hover {
+            background: #4a9c75;
+        }
+        
+        .btn-clear {
+            background: #f2f2f2;
+            color: #666;
+        }
+        
+        .btn-clear:hover {
+            background: #e5e5e5;
+        }
+        
+        .result-section {
+            padding: 25px;
+        }
+        
+        .result-section h2 {
+            margin-bottom: 15px;
+            color: #4a6fa5;
+            display: flex;
+            align-items: center;
+        }
+        
+        .result-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+        
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            border-left: 4px solid #4a6fa5;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #4a6fa5;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .instructions code {
+            background: #e8effb;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .counter {
+            display: inline-block;
+            background: #4a6fa5;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            text-align: center;
+            line-height: 24px;
+            margin-left: 8px;
+            font-size: 14px;
+        }
+        
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Генератор SQL команд для устройств</h1>
+            <p class="description">Введите списки DevEUI, AppSKey и NwkSKey для генерации SQL команд</p>
+        </header>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label>
+                    <i>📋</i> DevEUI <span class="counter" id="deveui-counter">0</span>
+                </label>
+                <textarea id="deveui-list" placeholder="Введите DevEUI (по одному на строку):&#10;04:97:90:00:10:54:DB:96&#10;04:97:90:00:10:54:DB:97&#10;04:97:90:00:10:54:DB:98"></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label>
+                    <i>🔑</i> AppSKey <span class="counter" id="appskey-counter">0</span>
+                </label>
+                <textarea id="appskey-list" placeholder="Введите AppSKey (по одному на строку):&#10;A31559117A16EEC4F34C5726A69E4AA6&#10;B42569127B26FFD5G45D6837B79F5BB7&#10;C53579137C36GGD6H56E7938C89G6CC8"></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label>
+                    <i>🔐</i> NwkSKey <span class="counter" id="nwkskey-counter">0</span>
+                </label>
+                <textarea id="nwkskey-list" placeholder="Введите NwkSKey (по одному на строку):&#10;EF56B26A60588C96C99B70E41C3A15DC&#10;FG67C37B71699DA7DAAAC81F52D426ED&#10;GH78D48C827AAEB8EBBBB92G63E537FE"></textarea>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn-generate" id="generate-btn">
+                <i>⚡</i> Сгенерировать SQL
+            </button>
+            <button class="btn-copy" id="copy-btn">
+                <i>📋</i> Копировать
+            </button>
+            <button class="btn-clear" id="clear-btn">
+                <i>🗑️</i> Очистить
+            </button>
+        </div>
+        
+        <div class="result-section">
+            <h2><i>📝</i> Результат:</h2>
+            <div class="result-container">
+                <pre id="sql-output">// Здесь будет сгенерированный SQL код</pre>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>Как использовать:</h3>
+            <ul>
+                <li>Введите списки DevEUI, AppSKey и NwkSKey в соответствующие поля (по одному значению на строку)</li>
+                <li>Количество строк во всех полях должно совпадать</li>
+                <li>Значения DevEUI должны быть в формате <code>04:97:90:00:10:54:DB:96</code></li>
+                <li>Ключи должны быть в HEX-формате длиной 32 символа (без пробелов)</li>
+                <li>Нажмите "Сгенерировать SQL" для создания команд</li>
+                <li>Используйте "Копировать" чтобы скопировать результат в буфер обмена</li>
+            </ul>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Генератор SQL команд для обновления ключей устройств &copy; 2023</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deveuiTextarea = document.getElementById('deveui-list');
+            const appskeyTextarea = document.getElementById('appskey-list');
+            const nwkskeyTextarea = document.getElementById('nwkskey-list');
+            const generateBtn = document.getElementById('generate-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const sqlOutput = document.getElementById('sql-output');
+            const deveuiCounter = document.getElementById('deveui-counter');
+            const appskeyCounter = document.getElementById('appskey-counter');
+            const nwkskeyCounter = document.getElementById('nwkskey-counter');
+            
+            // Обновление счетчиков строк
+            function updateCounters() {
+                const deveuiLines = deveuiTextarea.value.split('\n').filter(line => line.trim() !== '').length;
+                const appskeyLines = appskeyTextarea.value.split('\n').filter(line => line.trim() !== '').length;
+                const nwkskeyLines = nwkskeyTextarea.value.split('\n').filter(line => line.trim() !== '').length;
+                
+                deveuiCounter.textContent = deveuiLines;
+                appskeyCounter.textContent = appskeyLines;
+                nwkskeyCounter.textContent = nwkskeyLines;
+            }
+            
+            // Инициализация счетчиков
+            updateCounters();
+            
+            // Слушатели событий для обновления счетчиков
+            deveuiTextarea.addEventListener('input', updateCounters);
+            appskeyTextarea.addEventListener('input', updateCounters);
+            nwkskeyTextarea.addEventListener('input', updateCounters);
+            
+            // Генерация SQL
+            generateBtn.addEventListener('click', function() {
+                const deveuiLines = deveuiTextarea.value.split('\n').filter(line => line.trim() !== '');
+                const appskeyLines = appskeyTextarea.value.split('\n').filter(line => line.trim() !== '');
+                const nwkskeyLines = nwkskeyTextarea.value.split('\n').filter(line => line.trim() !== '');
+                
+                // Проверка на одинаковое количество строк
+                if (deveuiLines.length !== appskeyLines.length || deveuiLines.length !== nwkskeyLines.length) {
+                    sqlOutput.textContent = 'Ошибка: количество строк во всех полях должно совпадать!';
+                    return;
+                }
+                
+                // Проверка формата DevEUI
+                for (const deveui of deveuiLines) {
+                    if (!/^([0-9A-Fa-f]{2}:){7}[0-9A-Fa-f]{2}$/.test(deveui.trim())) {
+                        sqlOutput.textContent = `Ошибка: неверный формат DevEUI: ${deveui}\nОжидается формат: 04:97:90:00:10:54:DB:96`;
+                        return;
+                    }
+                }
+                
+                // Проверка формата ключей (32 символа hex)
+                const hexRegex = /^[0-9A-Fa-f]{32}$/;
+                for (const key of [...appskeyLines, ...nwkskeyLines]) {
+                    if (!hexRegex.test(key.trim())) {
+                        sqlOutput.textContent = `Ошибка: неверный формат ключа: ${key}\nКлюч должен содержать ровно 32 шестнадцатеричных символа`;
+                        return;
+                    }
+                }
+                
+                // Генерация SQL
+                let sqlCommands = '';
+                for (let i = 0; i < deveuiLines.length; i++) {
+                    sqlCommands += `UPDATE public.device\n`;
+                    sqlCommands += `    SET appskey=decode('${appskeyLines[i].trim().toUpperCase()}', 'hex'),\n`;
+                    sqlCommands += `        nwkskey=decode('${nwkskeyLines[i].trim().toUpperCase()}', 'hex')\n`;
+                    sqlCommands += `    WHERE deveui ='${deveuiLines[i].trim().toUpperCase()}';\n\n`;
+                }
+                
+                sqlOutput.textContent = sqlCommands;
+            });
+            
+            // Копирование в буфер обмена
+            copyBtn.addEventListener('click', function() {
+                if (sqlOutput.textContent === '// Здесь будет сгенерированный SQL код') {
+                    return;
+                }
+                
+                navigator.clipboard.writeText(sqlOutput.textContent)
+                    .then(() => {
+                        const originalText = copyBtn.innerHTML;
+                        copyBtn.innerHTML = '<i>✓</i> Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Ошибка при копировании: ', err);
+                    });
+            });
+            
+            // Очистка полей
+            clearBtn.addEventListener('click', function() {
+                deveuiTextarea.value = '';
+                appskeyTextarea.value = '';
+                nwkskeyTextarea.value = '';
+                sqlOutput.textContent = '// Здесь будет сгенерированный SQL код';
+                updateCounters();
+            });
+        });
+    </script>
+</body>
+</html>

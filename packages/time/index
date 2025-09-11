@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор и декодер сообщений</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>📟</text></svg>">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #4CAF50;
+            --accent-color: #2E8B57;
+            --background-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: var(--background-gradient);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--primary-color);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+        
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        
+        .input-section {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-group label {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-group label i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        
+        .counter {
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 12px;
+            padding: 2px 10px;
+            margin-left: 10px;
+            font-size: 0.9em;
+        }
+        
+        .actions {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            background: #f9fafb;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .btn-decode, .btn-encode {
+            background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+            color: white;
+        }
+        
+        .btn-decode:hover, .btn-encode:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--hover-shadow);
+        }
+        
+        .btn-copy {
+            background: #4a6fa5;
+            color: white;
+        }
+        
+        .btn-copy:hover {
+            background: #3c5d8c;
+            transform: translateY(-2px);
+        }
+        
+        .btn-clear {
+            background: #f2f2f2;
+            color: #666;
+        }
+        
+        .btn-clear:hover {
+            background: #e5e5e5;
+            transform: translateY(-2px);
+        }
+        
+        .result-section {
+            padding: 25px;
+        }
+        
+        .result-section h2 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+        
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: 'Fira Code', 'Monaco', 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #333;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .instructions {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .instructions h3 {
+            margin-bottom: 12px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .instructions code {
+            background: #e8effb;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #5a6b7c;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Генератор и декодер сообщений</h1>
+            <p class="description">Декодируйте HEX-сообщения в даты или генерируйте сообщения из дат для устройств</p>
+        </header>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label><i>🔢</i> HEX-сообщение <span class="counter" id="message-counter">0</span></label>
+                <textarea id="inputMessage" placeholder="Введите HEX-сообщение (например, 140900116939000011693900)"></textarea>
+            </div>
+            
+            <div class="input-group">
+                <label><i>⚙️</i> Код команды <span class="counter" id="code-counter">0</span></label>
+                <input type="text" id="inputCode" placeholder="e.g., 09" maxlength="2">
+            </div>
+            
+            <div class="input-group">
+                <label><i>⏰</i> Первая дата <span class="counter" id="time1-counter">0</span></label>
+                <input type="text" id="inputTime1" placeholder="e.g., 17:00:00 09.09.2027 или 170009092027">
+            </div>
+            
+            <div class="input-group">
+                <label><i>⏰</i> Вторая дата <span class="counter" id="time2-counter">0</span></label>
+                <input type="text" id="inputTime2" placeholder="e.g., 17:00:00 09.09.2027 или 170009092027">
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn-decode" id="decode-btn"><i>🔍</i> Декодировать</button>
+            <button class="btn-encode" id="encode-btn"><i>⚡</i> Закодировать</button>
+            <button class="btn-copy" id="copy-btn"><i>📋</i> Копировать</button>
+            <button class="btn-clear" id="clear-btn"><i>🗑️</i> Очистить</button>
+        </div>
+        
+        <div class="result-section">
+            <h2><i>📝</i> Результат:</h2>
+            <div class="result-container">
+                <pre id="output">// Здесь будет результат декодирования или кодирования</pre>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3><i>💡</i> Как использовать:</h3>
+            <ul>
+                <li>Для декодирования: Введите HEX-сообщение (например, <code>140900116939000011693900</code>) и нажмите "Декодировать".</li>
+                <li>Для кодирования: Введите код команды (2 HEX-символа, например, <code>09</code>) и две даты (например, <code>17:00:00 09.09.2027</code> или <code>170009092027</code>), затем нажмите "Закодировать".</li>
+                <li>Поддерживаемые форматы дат: <code>HH:MM:SS DD.MM.YYYY</code>, <code>HHMMSSDDMMYYYY</code>, <code>HHMMSS DDMMYYYY</code>, или с разделителями (-, /).</li>
+                <li>Годы: 2024–2031. Код команды: 2 HEX-символа.</li>
+                <li>Нажмите "Копировать" для копирования результата или "Очистить" для сброса полей.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Генератор и декодер сообщений &copy; 2025</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('inputMessage');
+            const codeInput = document.getElementById('inputCode');
+            const time1Input = document.getElementById('inputTime1');
+            const time2Input = document.getElementById('inputTime2');
+            const output = document.getElementById('output');
+            const copyBtn = document.getElementById('copy-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const messageCounter = document.getElementById('message-counter');
+            const codeCounter = document.getElementById('code-counter');
+            const time1Counter = document.getElementById('time1-counter');
+            const time2Counter = document.getElementById('time2-counter');
+
+            // Обновление счётчиков
+            function updateCounters() {
+                messageCounter.textContent = messageInput.value.split('\n').filter(line => line.trim() !== '').length;
+                codeCounter.textContent = codeInput.value.trim() ? 1 : 0;
+                time1Counter.textContent = time1Input.value.trim() ? 1 : 0;
+                time2Counter.textContent = time2Input.value.trim() ? 1 : 0;
+            }
+
+            updateCounters();
+            messageInput.addEventListener('input', updateCounters);
+            codeInput.addEventListener('input', updateCounters);
+            time1Input.addEventListener('input', updateCounters);
+            time2Input.addEventListener('input', updateCounters);
+
+            // Автоформатирование времени
+            function formatTimeInput(input) {
+                input.addEventListener('input', () => {
+                    let value = input.value.replace(/[^0-9]/g, '');
+                    if (value.length >= 12) {
+                        const hours = value.slice(0, 2);
+                        const minutes = value.slice(2, 4);
+                        const seconds = value.slice(4, 6);
+                        const day = value.slice(6, 8);
+                        const month = value.slice(8, 10);
+                        let year = value.slice(10, 14);
+                        if (year.length === 2) year = '20' + year;
+                        input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.${year}`;
+                    } else if (value.length >= 8 && value.length < 12) {
+                        const hours = value.slice(0, 2);
+                        const minutes = value.slice(2, 4);
+                        const seconds = value.slice(4, 6);
+                        const day = value.slice(6, 8);
+                        const month = value.slice(8, 10);
+                        input.value = `${hours}:${minutes}:${seconds} ${day}.${month}`;
+                    }
+                });
+            }
+
+            formatTimeInput(time1Input);
+            formatTimeInput(time2Input);
+
+            // Декодирование
+            function decodeMessage() {
+                const input = messageInput.value.trim();
+                if (input.length < 24 || input.length % 2 !== 0) {
+                    output.innerHTML = "Ошибка: Длина сообщения должна быть не менее 24 HEX-символов и чётной.";
+                    return;
+                }
+
+                const data = input.slice(4);
+                if (data.length < 20) {
+                    output.innerHTML = "Ошибка: Недостаточно данных для двух временных меток.";
+                    return;
+                }
+
+                try {
+                    const block1 = data.slice(0, 10);
+                    const block2 = data.slice(10, 20);
+                    const time1 = decodeDataTimeSec(block1);
+                    const time2 = decodeDataTimeSec(block2);
+
+                    const date1 = new Date(time1.year, time1.month - 1, time1.day, time1.hours, time1.minutes, time1.seconds);
+                    const date2 = new Date(time2.year, time2.month - 1, time2.day, time2.hours, time2.minutes, time2.seconds);
+                    const intervalSec = (date2 - date1) / 1000;
+
+                    output.innerHTML = `Декодировано:\nПервая дата: ${formatTime(time1)}\nВторая дата: ${formatTime(time2)}\nИнтервал: ${intervalSec} секунд`;
+                } catch (e) {
+                    output.innerHTML = `Ошибка: Неверные HEX-данные. ${e.message}`;
+                }
+            }
+
+            // Кодирование
+            function encodeMessage() {
+                const code = codeInput.value.trim();
+                const time1 = time1Input.value.trim();
+                const time2 = time2Input.value.trim();
+
+                if (!/^[0-9A-Fa-f]{2}$/.test(code)) {
+                    output.innerHTML = "Ошибка: Код команды должен состоять из 2 HEX-символов (например, 09).";
+                    return;
+                }
+
+                try {
+                    const parsedTime1 = parseTime(time1);
+                    const parsedTime2 = parseTime(time2);
+
+                    const block1 = encodeDataTimeSec(parsedTime1);
+                    const block2 = encodeDataTimeSec(parsedTime2);
+
+                    const message = `14${code}${block1}${block2}`;
+                    output.innerHTML = `Закодированное сообщение: ${message.toUpperCase()}`;
+                } catch (e) {
+                    output.innerHTML = `Ошибка: ${e.message}`;
+                }
+            }
+
+            function decodeDataTimeSec(hex) {
+                if (hex.length !== 10) throw new Error("Блок должен содержать 10 HEX-символов");
+
+                const bytes = [];
+                for (let i = 0; i < 10; i += 2) {
+                    bytes.push(parseInt(hex.slice(i, i + 2), 16));
+                }
+
+                const [minutes, hours, byte3, byte4, seconds] = bytes;
+                const code1 = byte3 >> 5;
+                const day = byte3 & 0x1F;
+                const code2 = byte4 >> 4;
+                const month = byte4 & 0x0F;
+
+                if (code2 !== 3) throw new Error("Неверный code2 (ожидается 3)");
+                if (day < 1 || day > 31) throw new Error("Неверный день");
+                if (month < 1 || month > 12) throw new Error("Неверный месяц");
+                if (hours > 23) throw new Error("Неверные часы");
+                if (minutes > 59) throw new Error("Неверные минуты");
+                if (seconds > 59) throw new Error("Неверные секунды");
+
+                const year = 2000 + code1 + 24;
+                if (year < 2024 || year > 2031) throw new Error("Год вне поддерживаемого диапазона (2024–2031)");
+
+                return { hours, minutes, seconds, day, month, year };
+            }
+
+            function encodeDataTimeSec({ hours, minutes, seconds, day, month, year }) {
+                const code1 = (year - 2000) - 24;
+                const code2 = 3;
+
+                if (code1 < 0 || code1 > 7) throw new Error("Год вне поддерживаемого диапазона (2024–2031)");
+
+                const byte1 = minutes.toString(16).padStart(2, '0');
+                const byte2 = hours.toString(16).padStart(2, '0');
+                const byte3 = ((code1 << 5) | (day & 0x1F)).toString(16).padStart(2, '0');
+                const byte4 = ((code2 << 4) | (month & 0x0F)).toString(16).padStart(2, '0');
+                const byte5 = seconds.toString(16).padStart(2, '0');
+
+                return `${byte1}${byte2}${byte3}${byte4}${byte5}`;
+            }
+
+            function parseTime(timeStr) {
+                let value = timeStr.replace(/[^0-9]/g, '');
+                if (value.length < 10) throw new Error("Неверный формат времени. Используйте HH:MM:SS DD.MM.YYYY или HHMMSSDDMMYYYY");
+
+                const hours = parseInt(value.slice(0, 2), 10);
+                const minutes = parseInt(value.slice(2, 4), 10);
+                const seconds = parseInt(value.slice(4, 6), 10);
+                const day = parseInt(value.slice(6, 8), 10);
+                const month = parseInt(value.slice(8, 10), 10);
+                let year = value.length >= 12 ? parseInt(value.slice(10, 14), 10) : parseInt(value.slice(10, 12), 10);
+                if (value.length === 10 || value.length === 12 && year < 100) year = 2000 + year;
+
+                if (hours > 23) throw new Error("Часы должны быть 0-23");
+                if (minutes > 59) throw new Error("Минуты должны быть 0-59");
+                if (seconds > 59) throw new Error("Секунды должны быть 0-59");
+                if (day < 1 || day > 31) throw new Error("День должен быть 1-31");
+                if (month < 1 || month > 12) throw new Error("Месяц должен быть 1-12");
+                if (year < 2024 || year > 2031) throw new Error("Год должен быть 2024-2031");
+
+                return { hours, minutes, seconds, day, month, year };
+            }
+
+            function formatTime({ hours, minutes, seconds, day, month, year }) {
+                return `${pad(hours)}:${pad(minutes)}:${pad(seconds)} ${pad(day)}.${pad(month)}.${year}`;
+            }
+
+            function pad(num) {
+                return num.toString().padStart(2, '0');
+            }
+
+            // Обработчики кнопок
+            document.getElementById('decode-btn').addEventListener('click', decodeMessage);
+            document.getElementById('encode-btn').addEventListener('click', encodeMessage);
+
+            // Копирование результата
+            copyBtn.addEventListener('click', function() {
+                if (output.textContent === '// Здесь будет результат декодирования или кодирования') {
+                    return;
+                }
+
+                navigator.clipboard.writeText(output.textContent)
+                    .then(() => {
+                        const originalText = copyBtn.innerHTML;
+                        copyBtn.innerHTML = '<i>✓</i> Скопировано!';
+                        setTimeout(() => {
+                            copyBtn.innerHTML = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Ошибка при копировании: ', err);
+                    });
+            });
+
+            // Очистка полей
+            clearBtn.addEventListener('click', function() {
+                messageInput.value = '';
+                codeInput.value = '';
+                time1Input.value = '';
+                time2Input.value = '';
+                output.textContent = '// Здесь будет результат декодирования или кодирования';
+                updateCounters();
+            });
+        });
+    </script>
+</body>
+</html>

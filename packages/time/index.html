@@ -274,12 +274,12 @@
             
             <div class="input-group">
                 <label><i>⏰</i> Первая дата <span class="counter" id="time1-counter">0</span></label>
-                <input type="text" id="inputTime1" placeholder="e.g., 17:00:00 09.09.2027 или 170009092027">
+                <input type="datetime-local" id="inputTime1" min="2024-01-01T00:00:00" max="2031-12-31T23:59:59">
             </div>
             
             <div class="input-group">
                 <label><i>⏰</i> Вторая дата <span class="counter" id="time2-counter">0</span></label>
-                <input type="text" id="inputTime2" placeholder="e.g., 17:00:00 09.09.2027 или 170009092027">
+                <input type="datetime-local" id="inputTime2" min="2024-01-01T00:00:00" max="2031-12-31T23:59:59">
             </div>
         </div>
         
@@ -301,9 +301,8 @@
             <h3><i>💡</i> Как использовать:</h3>
             <ul>
                 <li>Для декодирования: Введите HEX-сообщение (например, <code>140900116939000011693900</code>) и нажмите "Декодировать".</li>
-                <li>Для кодирования: Введите код команды (2 HEX-символа, например, <code>09</code>) и две даты (например, <code>17:00:00 09.09.2027</code> или <code>170009092027</code>), затем нажмите "Закодировать".</li>
-                <li>Поддерживаемые форматы дат: <code>HH:MM:SS DD.MM.YYYY</code>, <code>HHMMSSDDMMYYYY</code>, <code>HHMMSS DDMMYYYY</code>, или с разделителями (-, /).</li>
-                <li>Годы: 2024–2031. Код команды: 2 HEX-символа.</li>
+                <li>Для кодирования: Введите код команды (2 HEX-символа, например, <code>09</code>) и выберите две даты через поля выбора даты/времени, затем нажмите "Закодировать".</li>
+                <li>Даты должны быть в диапазоне 2024–2031 годов.</li>
                 <li>Нажмите "Копировать" для копирования результата или "Очистить" для сброса полей.</li>
             </ul>
         </div>
@@ -340,71 +339,6 @@
             codeInput.addEventListener('input', updateCounters);
             time1Input.addEventListener('input', updateCounters);
             time2Input.addEventListener('input', updateCounters);
-
-            // Автоформатирование времени
-            function formatTimeInput(input) {
-                let timeoutId = null;
-                let lastValue = '';
-                input.addEventListener('input', function(e) {
-                    clearTimeout(timeoutId);
-                    timeoutId = setTimeout(() => {
-                        const cursorPosition = e.target.selectionStart;
-                        let value = input.value;
-                        
-                        // Пропускаем, если значение не изменилось
-                        if (value === lastValue) return;
-                        lastValue = value;
-
-                        // Проверяем форматы
-                        let formatted = value;
-                        let cursorAdjustment = 0;
-
-                        // Формат DD.MM.YYYY или частичный (например, 30.01)
-                        if (/^\d{0,2}(?:\.\d{0,2}(?:\.\d{0,4})?)?$/.test(value)) {
-                            const parts = value.split('.');
-                            const day = parts[0] || '';
-                            const month = parts[1] || '';
-                            let year = parts[2] || '';
-                            if (year.length === 2 && parseInt(year) >= 24 && parseInt(year) <= 31) {
-                                year = '20' + year;
-                            }
-                            formatted = `${day}${month ? '.' + month : ''}${year ? '.' + year : ''}`;
-                        }
-                        // Полный формат HH:MM:SS DD.MM.YYYY или HHMMSSDDMMYYYY
-                        else {
-                            let numbers = value.replace(/[^0-9]/g, '');
-                            if (numbers.length >= 8) {
-                                const hours = numbers.slice(0, 2);
-                                const minutes = numbers.slice(2, 4);
-                                const seconds = numbers.slice(4, 6);
-                                const day = numbers.slice(6, 8);
-                                formatted = `${hours}:${minutes}:${seconds} ${day}`;
-                                if (numbers.length >= 10) {
-                                    const month = numbers.slice(8, 10);
-                                    formatted += `.${month}`;
-                                }
-                                if (numbers.length >= 12) {
-                                    let year = numbers.slice(10, 14);
-                                    if (year.length === 2 && parseInt(year) >= 24 && parseInt(year) <= 31) {
-                                        year = '20' + year;
-                                    }
-                                    formatted += `.${year}`;
-                                }
-                            }
-                        }
-
-                        // Обновляем значение только если оно изменилось
-                        if (formatted !== value) {
-                            cursorAdjustment = formatted.length - value.length;
-                            input.value = formatted;
-                            input.setSelectionRange(cursorPosition + cursorAdjustment, cursorPosition + cursorAdjustment);
-                        }
-                    }, 200); // Увеличена задержка до 200 мс для обработки удержания клавиши
-                });
-            }
-
-            formatTimeInput(time1Input);
-            formatTimeInput(time2Input);
 
             // Декодирование
             function decodeMessage() {
@@ -444,6 +378,11 @@
 
                 if (!/^[0-9A-Fa-f]{2}$/.test(code)) {
                     output.innerHTML = "Ошибка: Код команды должен состоять из 2 HEX-символов (например, 09).";
+                    return;
+                }
+
+                if (!time1 || !time2) {
+                    output.innerHTML = "Ошибка: Оба поля даты должны быть заполнены.";
                     return;
                 }
 
@@ -504,16 +443,18 @@
             }
 
             function parseTime(timeStr) {
-                let value = timeStr.replace(/[^0-9]/g, '');
-                if (value.length < 10) throw new Error("Неверный формат времени. Используйте HH:MM:SS DD.MM.YYYY или HHMMSSDDMMYYYY");
+                // Формат datetime-local: "YYYY-MM-DDThh:mm:ss"
+                const date = new Date(timeStr);
+                if (isNaN(date.getTime())) {
+                    throw new Error("Неверный формат даты. Выберите дату и время.");
+                }
 
-                const hours = parseInt(value.slice(0, 2), 10);
-                const minutes = parseInt(value.slice(2, 4), 10);
-                const seconds = parseInt(value.slice(4, 6), 10);
-                const day = parseInt(value.slice(6, 8), 10);
-                const month = parseInt(value.slice(8, 10), 10);
-                let year = value.length >= 12 ? parseInt(value.slice(10, 14), 10) : parseInt(value.slice(10, 12), 10);
-                if (value.length === 10 || value.length === 12 && year < 100) year = 2000 + year;
+                const hours = date.getHours();
+                const minutes = date.getMinutes();
+                const seconds = date.getSeconds();
+                const day = date.getDate();
+                const month = date.getMonth() + 1; // Месяцы в JS 0-11, корректируем
+                const year = date.getFullYear();
 
                 if (hours > 23) throw new Error("Часы должны быть 0-23");
                 if (minutes > 59) throw new Error("Минуты должны быть 0-59");

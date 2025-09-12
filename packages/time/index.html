@@ -341,55 +341,65 @@
             time1Input.addEventListener('input', updateCounters);
             time2Input.addEventListener('input', updateCounters);
 
-            // Автоформатирование времени (улучшенная версия)
+            // Автоформатирование времени
             function formatTimeInput(input) {
                 let timeoutId = null;
+                let lastValue = '';
                 input.addEventListener('input', function(e) {
                     clearTimeout(timeoutId);
                     timeoutId = setTimeout(() => {
                         const cursorPosition = e.target.selectionStart;
                         let value = input.value;
-                        let numbers = value.replace(/[^0-9]/g, ''); // Только цифры для обработки
-                        let formatted = value; // По умолчанию оставляем как есть
+                        
+                        // Пропускаем, если значение не изменилось
+                        if (value === lastValue) return;
+                        lastValue = value;
+
+                        // Проверяем форматы
+                        let formatted = value;
                         let cursorAdjustment = 0;
 
-                        // Проверяем, если пользователь начал с даты (DD.MM.YYYY)
-                        if (/^\d{2}\.\d{2}(?:\.\d{0,4})?$/.test(value)) {
-                            // Форматируем как дату
+                        // Формат DD.MM.YYYY или частичный (например, 30.01)
+                        if (/^\d{0,2}(?:\.\d{0,2}(?:\.\d{0,4})?)?$/.test(value)) {
                             const parts = value.split('.');
                             const day = parts[0] || '';
                             const month = parts[1] || '';
                             let year = parts[2] || '';
                             if (year.length === 2 && parseInt(year) >= 24 && parseInt(year) <= 31) {
-                                year = '20' + year; // Преобразуем двухзначный год
+                                year = '20' + year;
                             }
                             formatted = `${day}${month ? '.' + month : ''}${year ? '.' + year : ''}`;
-                        } else if (numbers.length >= 8) { // Полное форматирование для времени и даты
-                            const hours = numbers.slice(0, 2);
-                            const minutes = numbers.slice(2, 4);
-                            const seconds = numbers.slice(4, 6);
-                            const day = numbers.slice(6, 8);
-                            formatted = `${hours}:${minutes}:${seconds} ${day}`;
-                            if (numbers.length >= 10) {
-                                const month = numbers.slice(8, 10);
-                                formatted += `.${month}`;
-                            }
-                            if (numbers.length >= 12) {
-                                let year = numbers.slice(10, 14);
-                                if (year.length === 2 && parseInt(year) >= 24 && parseInt(year) <= 31) {
-                                    year = '20' + year;
+                        }
+                        // Полный формат HH:MM:SS DD.MM.YYYY или HHMMSSDDMMYYYY
+                        else {
+                            let numbers = value.replace(/[^0-9]/g, '');
+                            if (numbers.length >= 8) {
+                                const hours = numbers.slice(0, 2);
+                                const minutes = numbers.slice(2, 4);
+                                const seconds = numbers.slice(4, 6);
+                                const day = numbers.slice(6, 8);
+                                formatted = `${hours}:${minutes}:${seconds} ${day}`;
+                                if (numbers.length >= 10) {
+                                    const month = numbers.slice(8, 10);
+                                    formatted += `.${month}`;
                                 }
-                                formatted += `.${year}`;
+                                if (numbers.length >= 12) {
+                                    let year = numbers.slice(10, 14);
+                                    if (year.length === 2 && parseInt(year) >= 24 && parseInt(year) <= 31) {
+                                        year = '20' + year;
+                                    }
+                                    formatted += `.${year}`;
+                                }
                             }
                         }
 
-                        // Обновляем значение поля и корректируем курсор
+                        // Обновляем значение только если оно изменилось
                         if (formatted !== value) {
                             cursorAdjustment = formatted.length - value.length;
                             input.value = formatted;
                             input.setSelectionRange(cursorPosition + cursorAdjustment, cursorPosition + cursorAdjustment);
                         }
-                    }, 100); // Задержка 100 мс
+                    }, 200); // Увеличена задержка до 200 мс для обработки удержания клавиши
                 });
             }
 

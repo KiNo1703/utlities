@@ -6,6 +6,7 @@
     <title>Генератор и декодер сообщений</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>📟</text></svg>">
     <style>
+        /* Стили остаются без изменений */
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #4CAF50;
@@ -341,20 +342,33 @@
             time1Input.addEventListener('input', updateCounters);
             time2Input.addEventListener('input', updateCounters);
 
-            // Автоформатирование времени
-            {
+            // Автоформатирование времени - ИСПРАВЛЕННАЯ ВЕРСИЯ
+            function formatTimeInput(input) {
                 input.addEventListener('input', () => {
                     let value = input.value.replace(/[^0-9]/g, '');
-                    if (value.length >= 12) {
+                    
+                    // Если введено 12 цифр (с 2-значным годом)
+                    if (value.length === 12) {
                         const hours = value.slice(0, 2);
                         const minutes = value.slice(2, 4);
                         const seconds = value.slice(4, 6);
                         const day = value.slice(6, 8);
                         const month = value.slice(8, 10);
-                        let year = value.slice(10, 14);
-                        if (year.length === 2) year = '20' + year;
+                        const year = value.slice(10, 12);
+                        input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.20${year}`;
+                    }
+                    // Если введено 14 цифр (с 4-значным годом)
+                    else if (value.length === 14) {
+                        const hours = value.slice(0, 2);
+                        const minutes = value.slice(2, 4);
+                        const seconds = value.slice(4, 6);
+                        const day = value.slice(6, 8);
+                        const month = value.slice(8, 10);
+                        const year = value.slice(10, 14);
                         input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.${year}`;
-                    } else if (value.length >= 8 && value.length < 12) {
+                    }
+                    // Если введено 8-10 цифр (без года)
+                    else if (value.length >= 8 && value.length < 12) {
                         const hours = value.slice(0, 2);
                         const minutes = value.slice(2, 4);
                         const seconds = value.slice(4, 6);
@@ -365,41 +379,8 @@
                 });
             }
 
-           function formatTimeInput(input) {
-    input.addEventListener('input', () => {
-        let value = input.value.replace(/[^0-9]/g, '');
-        
-        // Если введено 12 цифр (с 2-значным годом)
-        if (value.length === 12) {
-            const hours = value.slice(0, 2);
-            const minutes = value.slice(2, 4);
-            const seconds = value.slice(4, 6);
-            const day = value.slice(6, 8);
-            const month = value.slice(8, 10);
-            const year = value.slice(10, 12);
-            input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.20${year}`;
-        }
-        // Если введено 14 цифр (с 4-значным годом)
-        else if (value.length === 14) {
-            const hours = value.slice(0, 2);
-            const minutes = value.slice(2, 4);
-            const seconds = value.slice(4, 6);
-            const day = value.slice(6, 8);
-            const month = value.slice(8, 10);
-            const year = value.slice(10, 14);
-            input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.${year}`;
-        }
-        // Если введено 8-10 цифр (без года)
-        else if (value.length >= 8 && value.length < 12) {
-            const hours = value.slice(0, 2);
-            const minutes = value.slice(2, 4);
-            const seconds = value.slice(4, 6);
-            const day = value.slice(6, 8);
-            const month = value.slice(8, 10);
-            input.value = `${hours}:${minutes}:${seconds} ${day}.${month}`;
-        }
-    });
-}
+            formatTimeInput(time1Input);
+            formatTimeInput(time2Input);
 
             // Декодирование
             function decodeMessage() {
@@ -470,7 +451,7 @@
                 const code2 = byte4 >> 4;
                 const month = byte4 & 0x0F;
 
-                if (code2 !== 3) throw new Error("Неверный code2 (ожидается 3)");
+               if (code2 !== 3) throw new Error("Неверный code2 (ожидается 3)");
                 if (day < 1 || day > 31) throw new Error("Неверный день");
                 if (month < 1 || month > 12) throw new Error("Неверный месяц");
                 if (hours > 23) throw new Error("Неверные часы");

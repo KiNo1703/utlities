@@ -342,7 +342,7 @@
             time2Input.addEventListener('input', updateCounters);
 
             // Автоформатирование времени
-            function formatTimeInput(input) {
+            {
                 input.addEventListener('input', () => {
                     let value = input.value.replace(/[^0-9]/g, '');
                     if (value.length >= 12) {
@@ -365,8 +365,41 @@
                 });
             }
 
-            formatTimeInput(time1Input);
-            formatTimeInput(time2Input);
+           function formatTimeInput(input) {
+    input.addEventListener('input', () => {
+        let value = input.value.replace(/[^0-9]/g, '');
+        
+        // Если введено 12 цифр (с 2-значным годом)
+        if (value.length === 12) {
+            const hours = value.slice(0, 2);
+            const minutes = value.slice(2, 4);
+            const seconds = value.slice(4, 6);
+            const day = value.slice(6, 8);
+            const month = value.slice(8, 10);
+            const year = value.slice(10, 12);
+            input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.20${year}`;
+        }
+        // Если введено 14 цифр (с 4-значным годом)
+        else if (value.length === 14) {
+            const hours = value.slice(0, 2);
+            const minutes = value.slice(2, 4);
+            const seconds = value.slice(4, 6);
+            const day = value.slice(6, 8);
+            const month = value.slice(8, 10);
+            const year = value.slice(10, 14);
+            input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.${year}`;
+        }
+        // Если введено 8-10 цифр (без года)
+        else if (value.length >= 8 && value.length < 12) {
+            const hours = value.slice(0, 2);
+            const minutes = value.slice(2, 4);
+            const seconds = value.slice(4, 6);
+            const day = value.slice(6, 8);
+            const month = value.slice(8, 10);
+            input.value = `${hours}:${minutes}:${seconds} ${day}.${month}`;
+        }
+    });
+}
 
             // Декодирование
             function decodeMessage() {

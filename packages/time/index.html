@@ -6,7 +6,6 @@
     <title>Генератор и декодер сообщений</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>📟</text></svg>">
     <style>
-        /* Стили остаются без изменений */
         :root {
             --primary-color: #2c3e50;
             --secondary-color: #4CAF50;
@@ -342,40 +341,55 @@
             time1Input.addEventListener('input', updateCounters);
             time2Input.addEventListener('input', updateCounters);
 
-            // Автоформатирование времени - ИСПРАВЛЕННАЯ ВЕРСИЯ
+            // Автоформатирование времени (улучшенная версия)
             function formatTimeInput(input) {
-                input.addEventListener('input', () => {
-                    let value = input.value.replace(/[^0-9]/g, '');
-                    
-                    // Если введено 12 цифр (с 2-значным годом)
-                    if (value.length === 12) {
-                        const hours = value.slice(0, 2);
-                        const minutes = value.slice(2, 4);
-                        const seconds = value.slice(4, 6);
-                        const day = value.slice(6, 8);
-                        const month = value.slice(8, 10);
-                        const year = value.slice(10, 12);
-                        input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.20${year}`;
-                    }
-                    // Если введено 14 цифр (с 4-значным годом)
-                    else if (value.length === 14) {
-                        const hours = value.slice(0, 2);
-                        const minutes = value.slice(2, 4);
-                        const seconds = value.slice(4, 6);
-                        const day = value.slice(6, 8);
-                        const month = value.slice(8, 10);
-                        const year = value.slice(10, 14);
-                        input.value = `${hours}:${minutes}:${seconds} ${day}.${month}.${year}`;
-                    }
-                    // Если введено 8-10 цифр (без года)
-                    else if (value.length >= 8 && value.length < 12) {
-                        const hours = value.slice(0, 2);
-                        const minutes = value.slice(2, 4);
-                        const seconds = value.slice(4, 6);
-                        const day = value.slice(6, 8);
-                        const month = value.slice(8, 10);
-                        input.value = `${hours}:${minutes}:${seconds} ${day}.${month}`;
-                    }
+                let timeoutId = null;
+                input.addEventListener('input', function(e) {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        const cursorPosition = e.target.selectionStart;
+                        let value = input.value;
+                        let numbers = value.replace(/[^0-9]/g, ''); // Только цифры для обработки
+                        let formatted = value; // По умолчанию оставляем как есть
+                        let cursorAdjustment = 0;
+
+                        // Проверяем, если пользователь начал с даты (DD.MM.YYYY)
+                        if (/^\d{2}\.\d{2}(?:\.\d{0,4})?$/.test(value)) {
+                            // Форматируем как дату
+                            const parts = value.split('.');
+                            const day = parts[0] || '';
+                            const month = parts[1] || '';
+                            let year = parts[2] || '';
+                            if (year.length === 2 && parseInt(year) >= 24 && parseInt(year) <= 31) {
+                                year = '20' + year; // Преобразуем двухзначный год
+                            }
+                            formatted = `${day}${month ? '.' + month : ''}${year ? '.' + year : ''}`;
+                        } else if (numbers.length >= 8) { // Полное форматирование для времени и даты
+                            const hours = numbers.slice(0, 2);
+                            const minutes = numbers.slice(2, 4);
+                            const seconds = numbers.slice(4, 6);
+                            const day = numbers.slice(6, 8);
+                            formatted = `${hours}:${minutes}:${seconds} ${day}`;
+                            if (numbers.length >= 10) {
+                                const month = numbers.slice(8, 10);
+                                formatted += `.${month}`;
+                            }
+                            if (numbers.length >= 12) {
+                                let year = numbers.slice(10, 14);
+                                if (year.length === 2 && parseInt(year) >= 24 && parseInt(year) <= 31) {
+                                    year = '20' + year;
+                                }
+                                formatted += `.${year}`;
+                            }
+                        }
+
+                        // Обновляем значение поля и корректируем курсор
+                        if (formatted !== value) {
+                            cursorAdjustment = formatted.length - value.length;
+                            input.value = formatted;
+                            input.setSelectionRange(cursorPosition + cursorAdjustment, cursorPosition + cursorAdjustment);
+                        }
+                    }, 100); // Задержка 100 мс
                 });
             }
 

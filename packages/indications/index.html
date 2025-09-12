@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Анализ XLSX файлов с показаниями ПУ</title>
+    <title>Анализ XLSX и Генератор Команд</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>🕊️</text></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -32,7 +32,7 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input[type="file"] {
+        input[type="file"], input[type="text"] {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -108,17 +108,22 @@
 </head>
 <body>
     <div class="container">
-        <h1>Анализ XLSX файлов с показаниями ПУ</h1>
+        <h1>Анализ XLSX и Генератор Команд</h1>
 
         <div class="instructions">
-            <strong>Инструкция:</strong> Выберите интервал показаний, отметьте необходимость отображения только ПУ с пропусками, загрузите XLSX файл из отчета "Отчет получасовых показаний" и нажмите "Обработать".
+            <strong>Инструкция:</strong> Введите код команды (например, 1E), выберите интервал показаний, отметьте необходимость отображения только ПУ с пропусками, загрузите XLSX файл из отчета "Отчет получасовых показаний" и нажмите "Обработать". Для каждого пропуска будет сгенерирована команда с использованием указанного времени (дублированного для интервала 0).
+        </div>
+
+        <div class="form-group">
+            <label for="commandCode">Код команды (2 HEX-символа, e.g., 1E):</label>
+            <input type="text" id="commandCode" maxlength="2" placeholder="1E">
         </div>
 
         <div class="form-group">
             <label>Интервал показаний:</label>
             <div class="radio-group">
                 <input type="radio" id="halfHourly" name="interval" value="halfHourly" checked>
-                <label for="halfHourly"> Часовые показания</label>
+                <label for="halfHourly">Часовые показания</label>
                 <input type="radio" id="hourly" name="interval" value="hourly">
                 <label for="hourly">Получасовые показания</label>
             </div>
@@ -173,12 +178,61 @@
             return `${day}.${month}.${year} ${hours}:${minutes}`;
         }
 
+        function parseDateFromString(dateStr) {
+            // dateStr в формате DD.MM.YYYY HH:MM
+            const parts = dateStr.split(' ');
+            if (parts.length !== 2) throw new Error("Неверный формат даты");
+            const dateParts = parts[0].split('.');
+            const timeParts = parts[1].split(':');
+            if (dateParts.length !== 3 || timeParts.length !== 2) throw new Error("Неверный формат даты");
+            return {
+                day: parseInt(dateParts[0], 10),
+                month: parseInt(dateParts[1], 10),
+                year: parseInt(dateParts[2], 10),
+                hours: parseInt(timeParts[0], 10),
+                minutes: parseInt(timeParts[1], 10),
+                seconds: 0  // Устанавливаем секунды в 0 по умолчанию
+            };
+        }
+
+        function encodeDataTimeSec(timeObj) {
+            const { hours, minutes, seconds, day, month, year } = timeObj;
+            const code1 = (year - 2000) - 24;
+            const code2 = 3;
+
+            if (code1 < 0 || code1 > 7) throw new Error("Год вне поддерживаемого диапазона (2024–2031)");
+
+            const byte1 = minutes.toString(16).padStart(2, '0');
+            const byte2 = hours.toString(16).padStart(2, '0');
+            const byte3 = ((code1 << 5) | (day & 0x1F)).toString(16).padStart(2, '0');
+            const byte4 = ((code2 << 4) | (month & 0x0F)).toString(16).padStart(2, '0');
+            const byte5 = seconds.toString(16).padStart(2, '0');
+
+            return `${byte1}${byte2}${byte3}${byte4}${byte5}`.toUpperCase();
+        }
+
+        function generateCommand(code, timeStr) {
+            if (!/^[0-9A-Fa-f]{2}$/.test(code)) {
+                throw new Error("Код команды должен состоять из 2 HEX-символов (например, 1E).");
+            }
+            const timeObj = parseDateFromString(timeStr);
+            const encodedBlock = encodeDataTimeSec(timeObj);
+            return `14${code.toUpperCase()}${encodedBlock}${encodedBlock}`;
+        }
+
         function processFile() {
             const fileInput = document.getElementById('fileInput');
             const output = document.getElementById('output');
             const interval = document.querySelector('input[name="interval"]:checked').value;
             const onlyMissing = document.getElementById('onlyMissing').checked;
             const downloadBtn = document.getElementById('downloadBtn');
+            const commandCode = document.getElementById('commandCode').value.trim();
+
+            if (!commandCode) {
+                showNotification('Введите код команды!', 'error');
+                output.textContent = 'Введите код команды!';
+                return;
+            }
 
             if (!fileInput.files[0]) {
                 showNotification('Выберите файл!', 'error');
@@ -242,7 +296,7 @@
                             const timeSerial = headers[col];
                             const date = excelSerialToDate(timeSerial);
 
-                            // Пропускаем получасовые интервалы (минуты = 30) в режиме получасовых показаний
+                            // Пропускаем получасовые интервалы (минуты = 30) в режиме часовых показаний
                             if (interval === 'halfHourly' && date && date.getMinutes() === 30) {
                                 continue;
                             }
@@ -262,12 +316,19 @@
                         }
 
                         result += `ПУ: ${sn}\n`;
-                        result += 'Отсутствующие показания:\n';
+                        result += 'Отсутствующие показания и команды:\n';
 
                         if (missing.length === 0) {
                             result += 'Нет отсутствующих показаний.\n';
                         } else {
-                            result += missing.join('\n') + '\n';
+                            for (let miss of missing) {
+                                try {
+                                    const command = generateCommand(commandCode, miss);
+                                    result += `${miss} - ${command}\n`;
+                                } catch (err) {
+                                    result += `${miss} - Ошибка генерации команды: ${err.message}\n`;
+                                }
+                            }
                         }
                         result += '\n';
                     }
@@ -320,4 +381,3 @@
     </script>
 </body>
 </html>
-

@@ -451,7 +451,7 @@
                 const code2 = byte4 >> 4;
                 const month = byte4 & 0x0F;
 
-               if (code2 !== 3) throw new Error("Неверный code2 (ожидается 3)");
+                if (code2 !== 3) throw new Error("Неверный code2 (ожидается 3)");
                 if (day < 1 || day > 31) throw new Error("Неверный день");
                 if (month < 1 || month > 12) throw new Error("Неверный месяц");
                 if (hours > 23) throw new Error("Неверные часы");

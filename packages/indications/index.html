@@ -111,11 +111,11 @@
         <h1>Анализ XLSX и Генератор Команд</h1>
 
         <div class="instructions">
-            <strong>Инструкция:</strong> Введите код команды (например, 1E), выберите интервал показаний, отметьте необходимость отображения только ПУ с пропусками, загрузите XLSX файл из отчета "Отчет получасовых показаний" и нажмите "Обработать". Для каждого пропуска будет сгенерирована команда с использованием указанного времени (дублированного для интервала 0).
+            <strong>Инструкция:</strong> Введите код журнала (например, 1E), выберите интервал показаний, отметьте необходимость отображения только ПУ с пропусками, загрузите XLSX файл из отчета "Отчет получасовых показаний" и нажмите "Обработать". Для каждого пропуска будет сгенерирована команда с использованием указанного времени (дублированного для интервала 0).
         </div>
 
         <div class="form-group">
-            <label for="commandCode">Код команды (2 HEX-символа, e.g., 1E):</label>
+            <label for="commandCode">Код журнала (2 HEX-символа, e.g., 1E):</label>
             <input type="text" id="commandCode" maxlength="2" placeholder="1E">
         </div>
 
@@ -213,7 +213,7 @@
 
         function generateCommand(code, timeStr) {
             if (!/^[0-9A-Fa-f]{2}$/.test(code)) {
-                throw new Error("Код команды должен состоять из 2 HEX-символов (например, 1E).");
+                throw new Error("Код журнала должен состоять из 2 HEX-символов (например, 1E).");
             }
             const timeObj = parseDateFromString(timeStr);
             const encodedBlock = encodeDataTimeSec(timeObj);
@@ -229,8 +229,8 @@
             const commandCode = document.getElementById('commandCode').value.trim();
 
             if (!commandCode) {
-                showNotification('Введите код команды!', 'error');
-                output.textContent = 'Введите код команды!';
+                showNotification('Введите код журнала!', 'error');
+                output.textContent = 'Введите код журнала!';
                 return;
             }
 

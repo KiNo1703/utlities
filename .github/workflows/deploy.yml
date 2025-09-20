@@ -1,0 +1,46 @@
+name: 🚀 Deploy to Alpine Server
+
+# Запускать workflow при каждом пуше в ветку main
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    # Запускать на последней Ubuntu (среда выполнения для GitHub Actions)
+    runs-on: ubuntu-latest
+
+    steps:
+      # Шаг 1: Получить код из репозитория
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      # Шаг 2: Развернуть код на сервере через SSH
+      - name: 📡 Deploy to Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          # Используем секреты из настроек репозитория
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Скрипт, который выполнится на вашем сервере Alpine
+          script: |
+            echo "🔄 Starting deployment..."
+            # Переходим в директорию проекта
+            cd /opt/utlities
+            # Обновляем код из GitHub
+            git pull origin main
+            echo "✅ Code updated."
+
+            # Устанавливаем зависимости Node.js, если они есть
+            if [ -f "package.json" ]; then
+              echo "📦 Installing npm dependencies..."
+              npm install
+              echo "✅ Dependencies installed."
+            fi
+
+            # Здесь можно добавить команды для перезапуска сервисов.
+            # Например, если вы используете PM2:
+            # pm2 restart all
+
+            echo "🎉 Deployment successful!"

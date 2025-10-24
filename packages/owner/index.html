@@ -565,7 +565,12 @@
                 "часы": "03:00:00",
                 "owner": "snt_dryg",
                 "SQL": "update device set application_id = '{metering-console,metering-server,userspace}', owner = 'snt_dryg' where deveui in ()"
-            }
+            },
+			{ "Applications": "{metering-console,metering-server,userspace}",
+                "часы": "08:00:00",
+                "owner": "nres",
+                "SQL": "update device set application_id = '{metering-server,metering-console,nekta,nekta_grpc,userspace}' owner = 'nres' where deveui in ()"
+            
         ];
 
         function searchData() {

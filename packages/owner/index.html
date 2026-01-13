@@ -575,6 +575,11 @@
                 "часы": "03:00:00",
                 "owner": "ertelecom",
                "SQL": "update device set application_id = '{metering-server,metering-console,nekta,nekta_grpc,userspace}', owner = 'ertelecom' where deveui in ()"
+            },
+			{ "Applications": "{metering-console,metering-server,tcp-proxy,userspace,nforce_tur,nforce_web_new}",
+                "часы": "04:00:00",
+                "owner": "turenergocom",
+               "SQL": "update device set application_id = '{metering-console,metering-server,tcp-proxy,userspace,nforce_tur,nforce_web_new}', owner = 'turenergocom' where deveui in ()"
             }
         ];
 

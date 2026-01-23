@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hex Message Parser</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            height: 80px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .part {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+        }
+        .hex-block {
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            padding: 5px;
+            background: #f8f9fa;
+            margin: 2px;
+        }
+        .config-section {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hex Message Parser</h1>
+        
+        <div class="config-section">
+            <h3>Настройки разбивки</h3>
+            <label>Формат разбивки (через запятую, байты):</label>
+            <input type="text" id="format" value="4,6,6" placeholder="например: 4,6,6">
+            <small>Укажите количество байт для каждой части через запятую</small>
+        </div>
+
+        <label>Введите hex-сообщение:</label>
+        <textarea id="hexInput" placeholder="Введите hex-сообщение, например: 43 C8 09 01 00 00 00 07 39 CE 00 00 33 3B 00 00 00 00 00 00 2F A2 4B 00 10 86 53 00 00 00 AC 00 00 00 AC 00 00 00 00 00 00 16 FC 37 00 10 37 76 00 06 C4 C1 00 00 73 D1 00 00 46 3F 00 00 2D 92"></textarea>
+        
+        <button onclick="parseHex()">Разбить сообщение</button>
+        
+        <div id="result" class="result" style="display: none;">
+            <h3>Результат разбивки:</h3>
+            <div id="parts"></div>
+        </div>
+    </div>
+
+    <script>
+        function parseHex() {
+            const hexInput = document.getElementById('hexInput').value;
+            const formatInput = document.getElementById('format').value;
+            const resultDiv = document.getElementById('result');
+            const partsDiv = document.getElementById('parts');
+            
+            // Очищаем предыдущие результаты
+            partsDiv.innerHTML = '';
+            
+            try {
+                // Очищаем входные данные от лишних символов
+                const cleanHex = hexInput.replace(/[^0-9A-Fa-f]/g, '');
+                
+                if (cleanHex.length === 0) {
+                    throw new Error('Введите hex-данные');
+                }
+                
+                if (cleanHex.length % 2 !== 0) {
+                    throw new Error('Нечетное количество hex-символов');
+                }
+                
+                // Преобразуем в массив байт
+                const bytes = [];
+                for (let i = 0; i < cleanHex.length; i += 2) {
+                    bytes.push(cleanHex.substr(i, 2).toUpperCase());
+                }
+                
+                // Парсим формат
+                const format = formatInput.split(',').map(num => parseInt(num.trim()));
+                
+                if (format.some(isNaN) || format.some(num => num <= 0)) {
+                    throw new Error('Неверный формат. Используйте числа через запятую, например: 4,6,6');
+                }
+                
+                let currentIndex = 0;
+                let partNumber = 1;
+                
+                // Разбиваем по формату
+                for (const chunkSize of format) {
+                    if (currentIndex >= bytes.length) break;
+                    
+                    const chunk = bytes.slice(currentIndex, currentIndex + chunkSize);
+                    const partDiv = document.createElement('div');
+                    partDiv.className = 'part';
+                    partDiv.innerHTML = `
+                        <strong>Часть ${partNumber} (${chunk.length} байт):</strong>
+                        <div class="hex-block">${chunk.join(' ')}</div>
+                    `;
+                    partsDiv.appendChild(partDiv);
+                    
+                    currentIndex += chunkSize;
+                    partNumber++;
+                }
+                
+                // Если остались байты после формата
+                if (currentIndex < bytes.length) {
+                    const remaining = bytes.slice(currentIndex);
+                    const partDiv = document.createElement('div');
+                    partDiv.className = 'part';
+                    partDiv.innerHTML = `
+                        <strong>Остаток (${remaining.length} байт):</strong>
+                        <div class="hex-block">${remaining.join(' ')}</div>
+                    `;
+                    partsDiv.appendChild(partDiv);
+                }
+                
+                resultDiv.style.display = 'block';
+                
+            } catch (error) {
+                partsDiv.innerHTML = `<div style="color: red;">Ошибка: ${error.message}</div>`;
+                resultDiv.style.display = 'block';
+            }
+        }
+        
+        // Пример при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('hexInput').value = '43 C8 09 01 00 00 00 07 39 CE 00 00 33 3B 00 00 00 00 00 00 2F A2 4B 00 10 86 53 00 00 00 AC 00 00 00 AC 00 00 00 00 00 00 16 FC 37 00 10 37 76 00 06 C4 C1 00 00 73 D1 00 00 46 3F 00 00 2D 92';
+        });
+    </script>
+</body>
+</html>

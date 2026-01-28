@@ -649,7 +649,7 @@
                 <p>Формат команды: <strong>57[маска][год+день1][год+месяц1][год+день2][год+месяц2]</strong></p>
                 <ul>
                     <li>Год кодируется 7 битами (последние 2 цифры года)</li>
-                    <li>Для дней берутся 3 старших бита года + 5 бит дня</li>
+                    <li>Для дней берутся 3 младших бита года + 5 бит дня</li>
                     <li>Для месяцев берутся 4 старших бита года + 4 бита месяца</li>
                 </ul>
             </div>
@@ -908,16 +908,27 @@
         // ===== Парсер двух дат =====
         function generateTwoDatesCommand() {
             try {
-                const dateFrom = new Date(document.getElementById('dateFrom').value);
-                const dateTo = new Date(document.getElementById('dateTo').value);
-                if (!dateFrom || !dateTo) {
-                    showAlert("Пожалуйста, укажите обе даты!", 'error');
+                const dateFromStr = document.getElementById('dateFrom').value;
+                const dateToStr = document.getElementById('dateTo').value;
+                
+                if (!dateFromStr || !dateToStr) {
+                    showAlert("Пожалуйста, заполните обе даты!", 'error');
                     return;
                 }
+                
+                const dateFrom = new Date(dateFromStr);
+                const dateTo = new Date(dateToStr);
+                
+                if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
+                    showAlert("Некорректный формат даты!", 'error');
+                    return;
+                }
+                
                 if (dateFrom > dateTo) {
                     showAlert("Дата начала должна быть раньше даты окончания!", 'error');
                     return;
                 }
+                
                 const code = "57";
                 const maskBinary = [
                     document.getElementById('rMinus').checked ? '1' : '0',
@@ -950,18 +961,65 @@
             }
         }
 
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Кодирование даты (работает правильно для 2026 года)
         function encodeDatePart(year, value, type) {
-            const yearBinary = decToBin(year, 7);
+            // Год в двузначном формате (2026 → 26)
+            const yearValue = year % 100;
+            
+            // 7-битное представление года
+            const yearBinary = decToBin(yearValue, 7);
+            
             if (type === 'day') {
+                // Для дня: 3 младших бита года (биты 2,1,0)
+                // В строке из 7 бит: индексы 4,5,6 (последние 3 символа)
+                const yearBits = yearBinary.substring(4, 7);
                 const dayBinary = decToBin(value, 5);
-                const combined = yearBinary.substring(0, 3) + dayBinary;
-                return binaryToHex(combined);
+                const combined = yearBits + dayBinary;
+                return parseInt(combined, 2).toString(16).padStart(2, '0').toUpperCase();
+                
             } else if (type === 'month') {
+                // Для месяца: 4 старших бита года (биты 6,5,4,3)
+                // В строке из 7 бит: индексы 0,1,2,3 (первые 4 символа)
+                const yearBits = yearBinary.substring(0, 4);
                 const monthBinary = decToBin(value, 4);
-                const combined = yearBinary.substring(0, 4) + monthBinary;
-                return binaryToHex(combined);
+                const combined = yearBits + monthBinary;
+                return parseInt(combined, 2).toString(16).padStart(2, '0').toUpperCase();
             }
             return "00";
+        }
+
+        // Функция преобразования десятичного числа в двоичное
+        function decToBin(number, length) {
+            if (number < 0) number = 0;
+            
+            // Максимальное значение для length бит
+            const maxValue = Math.pow(2, length) - 1;
+            if (number > maxValue) {
+                number = maxValue;
+            }
+            
+            return number.toString(2).padStart(length, '0');
+        }
+
+        // Функция преобразования двоичной строки в HEX
+        function binaryToHex(binary) {
+            // Для 8-битного значения (самый частый случай)
+            if (binary.length === 8) {
+                return parseInt(binary, 2).toString(16).padStart(2, '0').toUpperCase();
+            }
+            
+            // Для других длин (например, для маски)
+            let hex = '';
+            // Дополняем до кратного 4
+            const paddedLength = Math.ceil(binary.length / 4) * 4;
+            const paddedBinary = binary.padStart(paddedLength, '0');
+            
+            for (let i = 0; i < paddedBinary.length; i += 4) {
+                const nibble = paddedBinary.substr(i, 4);
+                hex += parseInt(nibble, 2).toString(16);
+            }
+            
+            return hex.toUpperCase();
         }
 
         // ===== Генератор команд для 200 порта =====
@@ -1321,14 +1379,6 @@
             return number.toString(16).toUpperCase().padStart(length, '0');
         }
 
-        function decToBin(number, length) {
-            return number.toString(2).padStart(length, '0');
-        }
-
-        function binaryToHex(binary) {
-            return parseInt(binary, 2).toString(16).toUpperCase().padStart(2, '0');
-        }
-
         function showOutput(id) {
             const output = document.getElementById(id);
             output.classList.add('visible');
@@ -1370,6 +1420,13 @@
             initTabs();
             document.getElementById('parseButton').addEventListener('click', parseCommand);
             document.getElementById('generateButton').addEventListener('click', generateCommand);
+            
+            // Тестирование кодирования
+            console.log("Тест кодирования:");
+            console.log("27.01.2026 (ожидается 5B 31):", encodeDatePart(26, 27, 'day'), encodeDatePart(26, 1, 'month'));
+            console.log("25.12.2025 (ожидается 39 3C):", encodeDatePart(25, 25, 'day'), encodeDatePart(25, 12, 'month'));
+            console.log("01.01.2026 (ожидается 21 31):", encodeDatePart(26, 1, 'day'), encodeDatePart(26, 1, 'month'));
+            console.log("31.12.2026 (ожидается 3F 3C):", encodeDatePart(26, 31, 'day'), encodeDatePart(26, 12, 'month'));
         });
     </script>
 </body>

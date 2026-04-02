@@ -337,7 +337,6 @@
         </header>
         
         <div class="grid-container" id="utilitiesGrid">
-            <!-- Карточки будут добавлены через JavaScript -->
             <div class="no-results" id="noResults">
                 <h3>Ничего не найдено</h3>
                 <p>Попробуйте выбрать другую категорию</p>
@@ -354,7 +353,7 @@
         <button class="settings-btn" id="settingsBtn">⚙️</button>
     </div>
 
-    <!-- Модальное окно настроек -->
+    <!-- Модальное окно настроек с 3 режимами -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <h3>⚙️ Настройки открытия вкладок</h3>
@@ -375,6 +374,14 @@
                 </label>
             </div>
             
+            <div class="modal-option" data-mode="single">
+                <input type="radio" name="tabMode" id="modeSingle" value="single">
+                <label for="modeSingle">
+                    📌 Диспетчер задач (Одна вкладка)
+                    <div class="option-desc">Все утилиты открываются в одной вкладке (перезагрузка)</div>
+                </label>
+            </div>
+            
             <button class="close-modal" id="closeModalBtn">Готово</button>
         </div>
     </div>
@@ -386,85 +393,73 @@
                 name: "Генераторы", 
                 url: "packages/hex-commands-generator/index.html",
                 description: "Генератор HEX команд для различных устройств и систем",
-                category: "generator",
-                tags: ["команды", "hex", "генерация"]
+                category: "generator"
             },
             { 
                 name: "Овнеры", 
                 url: "packages/owner/index.html",
                 description: "Управление владельцами устройств и настройками прав доступа",
-                category: "management",
-                tags: ["владельцы", "управление", "доступ"]
+                category: "management"
             },
             { 
                 name: "Метки", 
                 url: "packages/mark/index.html",
                 description: "Создание и управление метками для устройств и объектов",
-                category: "management",
-                tags: ["метки", "теги", "организация"]
+                category: "management"
             },
             { 
                 name: "Светильники", 
                 url: "packages/lightSerialNumber/index.html",
                 description: "Работа с серийными номерами светильников и осветительных приборов",
-                category: "tools",
-                tags: ["светильники", "серийные номера", "освещение"]
+                category: "tools"
             },
             { 
                 name: "Добавление не наших ПУ в US", 
                 url: "packages/sql_command/index.html",
                 description: "Генерация SQL команд для добавления посторонних приборов учета",
-                category: "tools",
-                tags: ["sql", "базы данных", "приборы учета"]
+                category: "tools"
             },
             { 
                 name: "Формирование команд для отправки файлом на тепло и газ", 
                 url: "packages/komand_warm/index.html",
                 description: "Создание командных файлов для систем отопления и газоснабжения",
-                category: "generator",
-                tags: ["тепло", "газ", "команды", "файлы"]
+                category: "generator"
             },
             { 
                 name: "Показания", 
                 url: "packages/indications/index.html",
                 description: "Анализ показаний ПУ",
-                category: "tools",
-                tags: ["файлы"]
+                category: "tools"
             },
             { 
                 name: "Ключи", 
                 url: "packages/key/index.html",
                 description: "Массовая замена ключей",
-                category: "management",
-                tags: ["файлы"]
+                category: "management"
             },
             { 
                 name: "Время", 
                 url: "packages/time/index.html",
                 description: "Парсер времени на downlink показаний",
-                category: "tools",
-                tags: ["файлы"]
+                category: "tools"
             },
             { 
                 name: "TemplateDownlink", 
                 url: "packages/templateCommand",
                 description: "Генератор CSV файлов для Downlink",
-                category: "tools",
-                tags: ["файлы"]
+                category: "tools"
             },
             { 
                 name: "Байты", 
                 url: "packages/bytes/index.html",
                 description: "Работа с байтами uplink/downlink",
-                category: "tools",
-                tags: ["инструменты"]
+                category: "tools"
             },
             { 
                 name: "Генератор планировщика суточных", 
                 url: "http://10.78.0.163:5000/",
                 description: "Генератор и декодер команд планировщика",
-                category: "tools",
-                tags: ["инструменты"]
+                category: "tools"
             }
         ];
 
@@ -477,8 +472,12 @@
         const closeModalBtn = document.getElementById('closeModalBtn');
         const modalOptions = document.querySelectorAll('.modal-option');
         
-        // Хранилище открытых окон
+        // Хранилище открытых окон (для режима "focus")
         const openWindows = new Map();
+        
+        // Для режима "single" - одна вкладка
+        let singleTabWindow = null;
+        let currentSingleTabUrl = null;
         
         // Состояния
         let activeFilter = 'all';
@@ -487,10 +486,11 @@
         // Функция открытия утилиты
         function openUtility(url, name) {
             if (tabMode === 'new') {
-                // Режим "Новая вкладка"
+                // Режим 1: Новая вкладка
                 window.open(url, '_blank');
-            } else {
-                // Режим "Фокус"
+            } 
+            else if (tabMode === 'focus') {
+                // Режим 2: Фокус на существующую
                 if (openWindows.has(url)) {
                     const existingWindow = openWindows.get(url);
                     if (existingWindow && !existingWindow.closed) {
@@ -503,6 +503,18 @@
                     const newWindow = window.open(url, name.replace(/\s/g, '_'));
                     openWindows.set(url, newWindow);
                 }
+            }
+            else if (tabMode === 'single') {
+                // Режим 3: Диспетчер задач - одна вкладка для всех
+                if (singleTabWindow && !singleTabWindow.closed) {
+                    // Если окно существует, просто перезагружаем его с новым URL
+                    singleTabWindow.location.href = url;
+                    singleTabWindow.focus();
+                } else {
+                    // Открываем новое окно
+                    singleTabWindow = window.open(url, 'UtilityHub');
+                }
+                currentSingleTabUrl = url;
             }
         }
         
@@ -560,18 +572,25 @@
         
         // Открыть настройки
         function openSettingsModal() {
-            // Устанавливаем выбранный режим
             const radioNew = document.getElementById('modeNew');
             const radioFocus = document.getElementById('modeFocus');
+            const radioSingle = document.getElementById('modeSingle');
             
             if (tabMode === 'new') {
                 radioNew.checked = true;
                 document.querySelector('.modal-option[data-mode="new"]').classList.add('selected');
                 document.querySelector('.modal-option[data-mode="focus"]').classList.remove('selected');
-            } else {
+                document.querySelector('.modal-option[data-mode="single"]').classList.remove('selected');
+            } else if (tabMode === 'focus') {
                 radioFocus.checked = true;
                 document.querySelector('.modal-option[data-mode="focus"]').classList.add('selected');
                 document.querySelector('.modal-option[data-mode="new"]').classList.remove('selected');
+                document.querySelector('.modal-option[data-mode="single"]').classList.remove('selected');
+            } else {
+                radioSingle.checked = true;
+                document.querySelector('.modal-option[data-mode="single"]').classList.add('selected');
+                document.querySelector('.modal-option[data-mode="new"]').classList.remove('selected');
+                document.querySelector('.modal-option[data-mode="focus"]').classList.remove('selected');
             }
             
             settingsModal.classList.add('show');
@@ -586,8 +605,37 @@
         function saveSettings() {
             const selectedRadio = document.querySelector('input[name="tabMode"]:checked');
             if (selectedRadio) {
-                tabMode = selectedRadio.value;
+                const newMode = selectedRadio.value;
+                tabMode = newMode;
                 localStorage.setItem('tabMode', tabMode);
+                
+                // При переключении на режим "single" закрываем все старые окна из режима "focus"
+                if (newMode === 'single') {
+                    for (const [url, win] of openWindows.entries()) {
+                        if (win && !win.closed) {
+                            win.close();
+                        }
+                    }
+                    openWindows.clear();
+                }
+                // При переключении на режим "focus" закрываем singleTabWindow
+                else if (newMode === 'focus' && singleTabWindow && !singleTabWindow.closed) {
+                    singleTabWindow.close();
+                    singleTabWindow = null;
+                }
+                // При переключении на режим "new" закрываем все окна
+                else if (newMode === 'new') {
+                    if (singleTabWindow && !singleTabWindow.closed) {
+                        singleTabWindow.close();
+                        singleTabWindow = null;
+                    }
+                    for (const [url, win] of openWindows.entries()) {
+                        if (win && !win.closed) {
+                            win.close();
+                        }
+                    }
+                    openWindows.clear();
+                }
             }
             closeSettingsModal();
         }
@@ -607,18 +655,14 @@
         modalOptions.forEach(option => {
             const radio = option.querySelector('input');
             
-            // Клик по всей области опции
             option.addEventListener('click', (e) => {
-                // Если кликнули не по радио-кнопке, то программно переключаем
                 if (e.target !== radio) {
                     radio.checked = true;
-                    // Триггерим событие change
                     const changeEvent = new Event('change');
                     radio.dispatchEvent(changeEvent);
                 }
             });
             
-            // При изменении радио-кнопки
             radio.addEventListener('change', () => {
                 if (radio.checked) {
                     modalOptions.forEach(opt => opt.classList.remove('selected'));
@@ -643,6 +687,10 @@
                 if (win.closed) {
                     openWindows.delete(url);
                 }
+            }
+            if (singleTabWindow && singleTabWindow.closed) {
+                singleTabWindow = null;
+                currentSingleTabUrl = null;
             }
         }, 5000);
         

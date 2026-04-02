@@ -56,6 +56,136 @@
             line-height: 1.5;
         }
         
+        /* Кнопка настроек */
+        .settings-wrapper {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .settings-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .settings-btn:hover {
+            transform: rotate(30deg);
+            background: var(--secondary-color);
+        }
+        
+        /* Модальное окно настроек */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--hover-shadow);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+        
+        .modal-option {
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .modal-option:hover {
+            border-color: var(--secondary-color);
+            background: #f9f9f9;
+        }
+        
+        .modal-option.selected {
+            border-color: var(--secondary-color);
+            background: #e8f5e9;
+        }
+        
+        .modal-option input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .modal-option label {
+            cursor: pointer;
+            flex-grow: 1;
+            font-weight: 500;
+        }
+        
+        .option-desc {
+            font-size: 12px;
+            color: #5a6b7c;
+            margin-top: 4px;
+        }
+        
+        .close-modal {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .close-modal:hover {
+            background: var(--accent-color);
+        }
+        
         .filter-buttons {
             display: flex;
             justify-content: center;
@@ -167,7 +297,6 @@
             }
         }
         
-        /* Адаптивность */
         @media (max-width: 768px) {
             .grid-container {
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -220,6 +349,36 @@
         </footer>
     </div>
 
+    <!-- Кнопка настроек -->
+    <div class="settings-wrapper">
+        <button class="settings-btn" id="settingsBtn">⚙️</button>
+    </div>
+
+    <!-- Модальное окно настроек -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h3>⚙️ Настройки открытия вкладок</h3>
+            
+            <div class="modal-option" data-mode="new">
+                <input type="radio" name="tabMode" id="modeNew" value="new">
+                <label for="modeNew">
+                    🆕 Новая вкладка
+                    <div class="option-desc">При каждом нажатии открывается новая вкладка</div>
+                </label>
+            </div>
+            
+            <div class="modal-option" data-mode="focus">
+                <input type="radio" name="tabMode" id="modeFocus" value="focus">
+                <label for="modeFocus">
+                    🎯 Фокус на существующую
+                    <div class="option-desc">Повторное нажатие переключает на уже открытую вкладку</div>
+                </label>
+            </div>
+            
+            <button class="close-modal" id="closeModalBtn">Готово</button>
+        </div>
+    </div>
+
     <script>
         // Массив с данными о утилитах
         const utilities = [
@@ -265,112 +424,230 @@
                 category: "generator",
                 tags: ["тепло", "газ", "команды", "файлы"]
             },
-			{ 
+            { 
                 name: "Показания", 
                 url: "packages/indications/index.html",
                 description: "Анализ показаний ПУ",
                 category: "tools",
                 tags: ["файлы"]
             },
-			{ 
+            { 
                 name: "Ключи", 
                 url: "packages/key/index.html",
                 description: "Массовая замена ключей",
                 category: "management",
                 tags: ["файлы"]
             },
-			{ 
+            { 
                 name: "Время", 
                 url: "packages/time/index.html",
                 description: "Парсер времени на downlink показаний",
                 category: "tools",
                 tags: ["файлы"]
             },
-				{ 
+            { 
                 name: "TemplateDownlink", 
                 url: "packages/templateCommand",
                 description: "Генератор CSV файлов для Downlink",
                 category: "tools",
                 tags: ["файлы"]
             },
-			{ 
+            { 
                 name: "Байты", 
                 url: "packages/bytes/index.html",
                 description: "Работа с байтами uplink/downlink",
                 category: "tools",
                 tags: ["инструменты"]
             },
-		{ 
-                name: "Генератор планирощика суточных", 
+            { 
+                name: "Генератор планировщика суточных", 
                 url: "http://10.78.0.163:5000/",
-                description: "Генератор и декодер команд планирощика",
+                description: "Генератор и декодер команд планировщика",
                 category: "tools",
                 tags: ["инструменты"]
             }
         ];
 
-        // Элементы DOM
+        // Получаем элементы
         const utilitiesGrid = document.getElementById('utilitiesGrid');
         const filterButtons = document.querySelectorAll('.filter-button');
-        const noResults = document.getElementById('noResults');
+        const noResultsDiv = document.getElementById('noResults');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalOptions = document.querySelectorAll('.modal-option');
         
-        // Текущий активный фильтр
+        // Хранилище открытых окон
+        const openWindows = new Map();
+        
+        // Состояния
         let activeFilter = 'all';
-
-        // Функция для создания карточек утилит
+        let tabMode = localStorage.getItem('tabMode') || 'new';
+        
+        // Функция открытия утилиты
+        function openUtility(url, name) {
+            if (tabMode === 'new') {
+                // Режим "Новая вкладка"
+                window.open(url, '_blank');
+            } else {
+                // Режим "Фокус"
+                if (openWindows.has(url)) {
+                    const existingWindow = openWindows.get(url);
+                    if (existingWindow && !existingWindow.closed) {
+                        existingWindow.focus();
+                    } else {
+                        const newWindow = window.open(url, name.replace(/\s/g, '_'));
+                        openWindows.set(url, newWindow);
+                    }
+                } else {
+                    const newWindow = window.open(url, name.replace(/\s/g, '_'));
+                    openWindows.set(url, newWindow);
+                }
+            }
+        }
+        
+        // Рендер карточек
         function renderUtilities() {
             utilitiesGrid.innerHTML = '';
-            let hasResults = false;
             
-            // Фильтрация утилит
-            const filteredUtilities = utilities.filter(utility => {
+            const filtered = utilities.filter(utility => {
                 return activeFilter === 'all' || utility.category === activeFilter;
             });
             
-            // Создание карточек
-            filteredUtilities.forEach((utility, index) => {
-                hasResults = true;
-                
+            if (filtered.length === 0) {
+                noResultsDiv.style.display = 'block';
+                return;
+            }
+            
+            noResultsDiv.style.display = 'none';
+            
+            filtered.forEach((utility, index) => {
                 const card = document.createElement('div');
                 card.className = 'utility-card';
-                card.style.animationDelay = `${index * 0.1}s`;
+                card.style.animationDelay = `${index * 0.05}s`;
                 
                 card.innerHTML = `
                     <div class="card-content">
-                        <h3 class="card-title">${utility.name}</h3>
-                        <p class="card-description">${utility.description}</p>
-                        <button class="card-button" onclick="window.open('${utility.url}', '_blank')">Открыть</button>
+                        <h3 class="card-title">${escapeHtml(utility.name)}</h3>
+                        <p class="card-description">${escapeHtml(utility.description)}</p>
+                        <button class="card-button" data-url="${escapeHtml(utility.url)}" data-name="${escapeHtml(utility.name)}">Открыть</button>
                     </div>
                 `;
                 
                 utilitiesGrid.appendChild(card);
             });
             
-            // Показать/скрыть сообщение о отсутствии результатов
-            noResults.style.display = hasResults ? 'none' : 'block';
+            // Добавляем обработчики на кнопки
+            document.querySelectorAll('.card-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const url = btn.getAttribute('data-url');
+                    const name = btn.getAttribute('data-name');
+                    openUtility(url, name);
+                });
+            });
         }
-
+        
+        // Защита от XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Открыть настройки
+        function openSettingsModal() {
+            // Устанавливаем выбранный режим
+            const radioNew = document.getElementById('modeNew');
+            const radioFocus = document.getElementById('modeFocus');
+            
+            if (tabMode === 'new') {
+                radioNew.checked = true;
+                document.querySelector('.modal-option[data-mode="new"]').classList.add('selected');
+                document.querySelector('.modal-option[data-mode="focus"]').classList.remove('selected');
+            } else {
+                radioFocus.checked = true;
+                document.querySelector('.modal-option[data-mode="focus"]').classList.add('selected');
+                document.querySelector('.modal-option[data-mode="new"]').classList.remove('selected');
+            }
+            
+            settingsModal.classList.add('show');
+        }
+        
+        // Закрыть настройки
+        function closeSettingsModal() {
+            settingsModal.classList.remove('show');
+        }
+        
+        // Сохранить настройки
+        function saveSettings() {
+            const selectedRadio = document.querySelector('input[name="tabMode"]:checked');
+            if (selectedRadio) {
+                tabMode = selectedRadio.value;
+                localStorage.setItem('tabMode', tabMode);
+            }
+            closeSettingsModal();
+        }
+        
+        // Обработчики событий
+        settingsBtn.addEventListener('click', openSettingsModal);
+        closeModalBtn.addEventListener('click', saveSettings);
+        
+        // Закрытие по клику на фон
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                closeSettingsModal();
+            }
+        });
+        
+        // Обработка выбора опций
+        modalOptions.forEach(option => {
+            const radio = option.querySelector('input');
+            
+            // Клик по всей области опции
+            option.addEventListener('click', (e) => {
+                // Если кликнули не по радио-кнопке, то программно переключаем
+                if (e.target !== radio) {
+                    radio.checked = true;
+                    // Триггерим событие change
+                    const changeEvent = new Event('change');
+                    radio.dispatchEvent(changeEvent);
+                }
+            });
+            
+            // При изменении радио-кнопки
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    modalOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                }
+            });
+        });
+        
         // Фильтрация
         filterButtons.forEach(button => {
             button.addEventListener('click', () => {
-                // Убрать активный класс у всех кнопок
                 filterButtons.forEach(btn => btn.classList.remove('active'));
-                
-                // Добавить активный класс к текущей кнопке
                 button.classList.add('active');
-                
-                // Установить активный фильтр
-                activeFilter = button.dataset.filter;
-                
-                // Перерисовать утилиты
+                activeFilter = button.getAttribute('data-filter');
                 renderUtilities();
             });
         });
-
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', () => {
-            renderUtilities();
-        });
+        
+        // Очистка закрытых окон (каждые 5 секунд)
+        setInterval(() => {
+            for (const [url, win] of openWindows.entries()) {
+                if (win.closed) {
+                    openWindows.delete(url);
+                }
+            }
+        }, 5000);
+        
+        // Запуск
+        renderUtilities();
     </script>
 </body>
 </html>
